@@ -9,19 +9,23 @@
 
 <script setup>
 import { useThemeStore } from '~/stores/theme';
+import { onMounted } from 'vue';
 
 const themeStore = useThemeStore();
 
-// Apply theme on mount
+// Apply theme and set up event listeners only on client-side
 onMounted(() => {
-  themeStore.initTheme();
-});
-
-// Watch for system theme changes
-const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-mediaQuery.addEventListener('change', (e) => {
-  if (themeStore.theme === 'system') {
-    themeStore.setTheme('system');
+  if (process.client) {
+    // Initialize theme
+    themeStore.initTheme();
+    
+    // Watch for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+      if (themeStore.theme === 'system') {
+        themeStore.setTheme('system');
+      }
+    });
   }
 });
 </script>

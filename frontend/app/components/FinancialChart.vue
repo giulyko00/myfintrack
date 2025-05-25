@@ -115,7 +115,7 @@ const chartConfig = computed(() => {
           beginAtZero: true,
           ticks: {
             callback: function(value) {
-              return '€' + value;
+              return '$' + value;
             }
           }
         }

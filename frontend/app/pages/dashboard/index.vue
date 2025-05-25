@@ -162,56 +162,73 @@
           </template>
 
           <form @submit.prevent="saveTransaction">
-            <div class="space-y-4">
-              <!-- Transaction Type -->
-              <div>
-                <UFormGroup label="Transaction Type" name="type">
-                  <URadioGroup
-                    v-model="newTransaction.type"
-                    :options="[
-                      { label: 'Income', value: 'income' },
-                      { label: 'Expense', value: 'expense' }
-                    ]"
-                    orientation="horizontal"
+            <!-- Transaction Type at the top -->
+            <div class="w-full bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg mb-4">
+              <UFormGroup label="Transaction Type" name="type" class="mb-0 w-full">
+                <URadioGroup
+                  v-model="newTransaction.type"
+                  :options="[
+                    { label: 'Income', value: 'income' },
+                    { label: 'Expense', value: 'expense' }
+                  ]"
+                  orientation="horizontal"
+                  class="justify-center w-full"
+                />
+              </UFormGroup>
+            </div>
+            
+            <!-- All form fields in one row -->
+            <div class="flex flex-wrap items-end space-x-2 mb-4">
+              <!-- Amount -->
+              <div class="flex-1 min-w-[120px]">
+                <UFormGroup label="Amount" name="amount" required>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span class="text-gray-500 dark:text-gray-400">$</span>
+                    </div>
+                    <UInput
+                      v-model="newTransaction.amount"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="0.00"
+                      class="pl-7 w-full"
+                      required
+                    />
+                  </div>
+                </UFormGroup>
+              </div>
+
+              <!-- Category -->
+              <div class="flex-1 min-w-[200px]">
+                <UFormGroup label="Category" name="category" required>
+                  <USelect
+                    v-model="newTransaction.category"
+                    :options="categoryOptions"
+                    placeholder="Select category"
+                    class="w-full"
+                    required
                   />
                 </UFormGroup>
               </div>
 
-              <!-- Amount -->
-              <UFormGroup label="Amount" name="amount">
-                <UInputAddon>€</UInputAddon>
-                <UInput
-                  v-model="newTransaction.amount"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  placeholder="0.00"
-                  required
-                />
-              </UFormGroup>
-
-              <!-- Category -->
-              <UFormGroup label="Category" name="category">
-                <USelect
-                  v-model="newTransaction.category"
-                  :options="categoryOptions"
-                  placeholder="Select a category"
-                  required
-                />
-              </UFormGroup>
-
               <!-- Date -->
-              <UFormGroup label="Date" name="date">
-                <UDatePicker v-model="newTransaction.date" />
-              </UFormGroup>
+              <div class="flex-1 min-w-[150px]">
+                <UFormGroup label="Date" name="date" required>
+                  <UDatePicker v-model="newTransaction.date" class="w-full" />
+                </UFormGroup>
+              </div>
 
               <!-- Description -->
-              <UFormGroup label="Description" name="description">
-                <UTextarea
-                  v-model="newTransaction.description"
-                  placeholder="Enter description"
-                />
-              </UFormGroup>
+              <div class="flex-1 min-w-[400px]">
+                <UFormGroup label="Description" name="description">
+                  <UInput
+                    v-model="newTransaction.description"
+                    placeholder="Enter description"
+                    class="w-full"
+                  />
+                </UFormGroup>
+              </div>
             </div>
 
             <div class="flex justify-end gap-2 mt-6">

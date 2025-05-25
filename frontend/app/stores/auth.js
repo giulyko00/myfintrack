@@ -28,19 +28,19 @@ export const useAuthStore = defineStore('auth', {
         // Simuliamo una breve attesa per dare l'impressione di una chiamata API
         await new Promise(resolve => setTimeout(resolve, 800))
 
-        // Validazione email
+        // Email validation
         if (!email || !email.includes('@')) {
-          throw new Error('Inserisci un indirizzo email valido')
+          throw new Error('Please enter a valid email address')
         }
         
-        // Validazione password
+        // Password validation
         if (!password || password.length < 8) {
-          throw new Error('La password deve essere di almeno 8 caratteri')
+          throw new Error('Password must be at least 8 characters long')
         }
         
-        // Verifica credenziali con l'utente di test
+        // Verify credentials against test user
         if (email !== this.testCredentials.email || password !== this.testCredentials.password) {
-          throw new Error('Credenziali non valide. Utilizza le credenziali di test visualizzate.')
+          throw new Error('Invalid credentials. Please use the displayed test credentials.')
         }
         
         // Login avvenuto con successo

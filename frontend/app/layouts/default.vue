@@ -37,23 +37,13 @@
             aria-label="Toggle dark mode"
             @click="toggleColorMode"
           />
-          <!-- Explicit logout button -->
-          <UButton
-            v-if="authStore.isAuthenticated"
-            icon="i-heroicons-arrow-right-on-rectangle"
-            color="gray"
-            variant="ghost"
-            aria-label="Logout"
-            @click="logout"
-          >
-            <span class="hidden sm:inline">Logout</span>
-          </UButton>
-          <!-- User avatar dropdown -->
-          <UDropdown v-if="authStore.isAuthenticated" :items="userMenuItems">
+          <!-- User avatar dropdown with logout option -->
+          <div v-if="authStore.isAuthenticated" class="relative user-menu-container">
             <UButton
               color="gray"
               variant="ghost"
               trailing-icon="i-heroicons-chevron-down"
+              @click="toggleUserMenu"
             >
               <template #leading>
                 <UAvatar
@@ -64,7 +54,29 @@
               </template>
               <span class="text-sm">{{ userName }}</span>
             </UButton>
-          </UDropdown>
+            
+            <!-- Menu dropdown custom implementation -->
+            <div v-if="isUserMenuOpen" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border border-gray-200 dark:border-gray-700">
+              <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">Opzioni utente</div>
+              
+              <button @click="goToProfile" class="w-full flex items-center px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <UIcon name="i-heroicons-user-circle" class="mr-2" />
+                Profilo
+              </button>
+              
+              <button @click="goToSettings" class="w-full flex items-center px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <UIcon name="i-heroicons-cog-6-tooth" class="mr-2" />
+                Impostazioni
+              </button>
+              
+              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+              
+              <button @click="logout" class="w-full flex items-center px-4 py-2 text-sm text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <UIcon name="i-heroicons-arrow-right-on-rectangle" class="mr-2" />
+                Esci
+              </button>
+            </div>
+          </div>
           <UButton
             class="md:hidden"
             color="gray"
@@ -148,7 +160,35 @@ const authStore = useAuthStore()
 const router = useRouter()
 
 const isMobileMenuOpen = ref(false)
+const isUserMenuOpen = ref(false)
 const currentYear = new Date().getFullYear()
+
+// Funzione per aprire/chiudere il menu utente
+function toggleUserMenu() {
+  isUserMenuOpen.value = !isUserMenuOpen.value
+}
+
+// Chiudi il menu quando si clicca al di fuori
+onMounted(() => {
+  document.addEventListener('click', (event) => {
+    const target = event.target
+    const userMenuContainer = document.querySelector('.user-menu-container')
+    if (userMenuContainer && !userMenuContainer.contains(target)) {
+      isUserMenuOpen.value = false
+    }
+  })
+})
+
+// Funzioni di navigazione
+function goToProfile() {
+  router.push('/profile')
+  isUserMenuOpen.value = false
+}
+
+function goToSettings() {
+  router.push('/settings')
+  isUserMenuOpen.value = false
+}
 
 // User information
 const userName = computed(() => {
@@ -165,21 +205,21 @@ const avatarUrl = computed(() => {
 const userMenuItems = computed(() => [
   [
     {
-      label: 'Profile',
+      label: 'Profilo',
       icon: 'i-heroicons-user-circle',
       click: () => router.push('/profile')
     },
     {
-      label: 'Settings',
+      label: 'Impostazioni',
       icon: 'i-heroicons-cog-6-tooth',
       click: () => router.push('/settings')
     }
   ],
   [
     {
-      label: 'Sign out',
+      label: 'Esci',
       icon: 'i-heroicons-arrow-right-on-rectangle',
-      click: logout
+      click: () => logout() // Assicurarsi che la funzione di logout venga chiamata correttamente
     }
   ]
 ])

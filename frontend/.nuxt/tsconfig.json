@@ -123,7 +123,7 @@
         "./imports"
       ],
       "#app-manifest": [
-        "./manifest/meta/dev.json"
+        "./manifest/meta/dev"
       ],
       "#components": [
         "./components"
@@ -176,6 +176,8 @@
     "../node_modules/@nuxtjs/color-mode/dist/runtime",
     "../node_modules/@nuxt/ui/runtime",
     "../node_modules/@nuxt/ui/dist/runtime",
+    "../node_modules/@pinia/nuxt/runtime",
+    "../node_modules/@pinia/nuxt/dist/runtime",
     "../node_modules/@nuxt/eslint/runtime",
     "../node_modules/@nuxt/eslint/dist/runtime",
     "../node_modules/@nuxt/devtools/runtime",
@@ -194,6 +196,7 @@
     "../node_modules/@nuxt/fonts/node_modules",
     "../node_modules/@nuxtjs/color-mode/node_modules",
     "../node_modules/@nuxt/ui/node_modules",
+    "../node_modules/@pinia/nuxt/node_modules",
     "../node_modules/@nuxt/eslint/node_modules",
     "../node_modules/@nuxt/devtools/node_modules",
     "../node_modules/@nuxt/telemetry/node_modules",
@@ -205,6 +208,8 @@
     "../node_modules/@nuxtjs/color-mode/dist/runtime/server",
     "../node_modules/@nuxt/ui/runtime/server",
     "../node_modules/@nuxt/ui/dist/runtime/server",
+    "../node_modules/@pinia/nuxt/runtime/server",
+    "../node_modules/@pinia/nuxt/dist/runtime/server",
     "../node_modules/@nuxt/eslint/runtime/server",
     "../node_modules/@nuxt/eslint/dist/runtime/server",
     "../node_modules/@nuxt/devtools/runtime/server",

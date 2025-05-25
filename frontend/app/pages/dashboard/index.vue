@@ -25,6 +25,12 @@
 
     <!-- Main Content -->
     <main class="container py-8">
+      <!-- Loading indicator -->
+      <div v-if="transactionsStore.loading" class="flex justify-center py-8">
+        <UProgress animation="carousel" indeterminate color="primary" />
+      </div>
+      
+      <div v-else>
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <UCard>
@@ -137,6 +143,31 @@
         variant="soft"
         class="mt-4"
       />
+      
+      <!-- Financial Charts Section -->
+      <div v-if="transactions.length > 0" class="mt-8">
+        <h2 class="text-lg font-bold mb-4">Financial Trends</h2>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Monthly Overview Chart -->
+          <FinancialChart
+            title="Monthly Overview"
+            :data="transactionsStore.getMonthlyStats"
+            :labels="chartData.labels"
+            :datasets="chartData.datasets"
+          />
+          
+          <!-- Expense Categories Chart -->
+          <FinancialChart
+            title="Expense Categories"
+            :data="transactionsStore.getCategoryStats"
+            :labels="categoryChartData.labels"
+            :datasets="categoryChartData.datasets"
+            :colors="['#EF4444', '#F97316', '#FBBF24', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280']"
+          />
+        </div>
+      </div>
+    </div>
 
       <!-- Add Transaction Modal -->
       <UModal v-model="isAddTransactionModalOpen" :ui="{ width: 'sm:max-w-md' }">
@@ -229,77 +260,87 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import FinancialChart from '~/components/FinancialChart.vue'
+
 const colorMode = useColorMode()
 
 // Mock data for now - will be replaced with API calls
-const transactions = ref([
-  {
-    id: 1,
-    date: new Date('2025-05-22'),
-    category: 'Salary',
-    description: 'Monthly salary',
-    amount: 2500,
-    type: 'income'
-  },
-  {
-    id: 2,
-    date: new Date('2025-05-20'),
-    category: 'Food',
-    description: 'Grocery shopping',
-    amount: 85.50,
-    type: 'expense'
-  },
-  {
-    id: 3,
-    date: new Date('2025-05-18'),
-    category: 'Transport',
-    description: 'Fuel',
-    amount: 45.00,
-    type: 'expense'
-  },
-  {
-    id: 4,
-    date: new Date('2025-05-15'),
-    category: 'Utilities',
-    description: 'Electricity bill',
-    amount: 75.20,
-    type: 'expense'
-  },
-  {
-    id: 5,
-    date: new Date('2025-05-10'),
-    category: 'Freelance',
-    description: 'Web development project',
-    amount: 600,
-    type: 'income'
+// Use the transactions store
+import { useTransactionsStore } from '~/stores/transactions'
+import { useAuthStore } from '~/stores/auth'
+
+const transactionsStore = useTransactionsStore()
+const authStore = useAuthStore()
+const router = useRouter()
+
+// Load transactions on component mount
+onMounted(async () => {
+  // Check authentication
+  if (!authStore.isAuthenticated) {
+    await authStore.checkAuth()
+    if (!authStore.isAuthenticated) {
+      router.push('/auth/login')
+      return
+    }
   }
-])
-
-// Computed properties for summary cards
-const totalBalance = computed(() => {
-  return transactions.value.reduce((total, transaction) => {
-    return transaction.type === 'income' 
-      ? total + transaction.amount 
-      : total - transaction.amount
-  }, 0)
+  
+  // Fetch transactions
+  await transactionsStore.fetchTransactions()
 })
 
-const monthlyIncome = computed(() => {
-  const currentMonth = new Date().getMonth()
-  return transactions.value
-    .filter(t => t.type === 'income' && t.date.getMonth() === currentMonth)
-    .reduce((total, t) => total + t.amount, 0)
-})
+// Get transactions from the store
+const transactions = computed(() => transactionsStore.getAllTransactions)
 
-const monthlyExpenses = computed(() => {
-  const currentMonth = new Date().getMonth()
-  return transactions.value
-    .filter(t => t.type === 'expense' && t.date.getMonth() === currentMonth)
-    .reduce((total, t) => total + t.amount, 0)
-})
+// Summary data from the store
+const totalBalance = computed(() => transactionsStore.getTotalBalance)
+const monthlyIncome = computed(() => transactionsStore.getMonthlyIncome)
+const monthlyExpenses = computed(() => transactionsStore.getMonthlyExpenses)
 
 const currentMonthName = computed(() => {
   return new Date().toLocaleString('default', { month: 'long' })
+})
+
+// Chart data for monthly overview
+const chartData = computed(() => {
+  const monthlyStats = transactionsStore.getMonthlyStats
+  return {
+    labels: monthlyStats.map(stat => stat.month),
+    datasets: [
+      {
+        label: 'Income',
+        data: monthlyStats.map(stat => stat.income),
+        type: 'bar'
+      },
+      {
+        label: 'Expenses',
+        data: monthlyStats.map(stat => stat.expense),
+        type: 'bar'
+      },
+      {
+        label: 'Balance',
+        data: monthlyStats.map(stat => stat.balance),
+        type: 'line',
+        yAxisID: 'y'
+      }
+    ]
+  }
+})
+
+// Chart data for expense categories
+const categoryChartData = computed(() => {
+  const categoryStats = transactionsStore.getCategoryStats
+  return {
+    labels: categoryStats.map(stat => stat.category),
+    datasets: [
+      {
+        label: 'Amount',
+        data: categoryStats.map(stat => stat.amount),
+        type: 'bar'
+      }
+    ]
+  }
 })
 
 // Transaction form
@@ -313,27 +354,9 @@ const newTransaction = ref({
   description: ''
 })
 
-// Category options based on transaction type
+// Category options from the store
 const categoryOptions = computed(() => {
-  if (newTransaction.value.type === 'income') {
-    return [
-      { label: 'Salary', value: 'Salary' },
-      { label: 'Freelance', value: 'Freelance' },
-      { label: 'Investments', value: 'Investments' },
-      { label: 'Other Income', value: 'Other Income' }
-    ]
-  } else {
-    return [
-      { label: 'Food', value: 'Food' },
-      { label: 'Transport', value: 'Transport' },
-      { label: 'Utilities', value: 'Utilities' },
-      { label: 'Entertainment', value: 'Entertainment' },
-      { label: 'Housing', value: 'Housing' },
-      { label: 'Shopping', value: 'Shopping' },
-      { label: 'Health', value: 'Health' },
-      { label: 'Other Expense', value: 'Other Expense' }
-    ]
-  }
+  return transactionsStore.getCategoriesForType(newTransaction.value.type)
 })
 
 // Format helpers
@@ -350,15 +373,16 @@ function toggleColorMode() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
 }
 
-function saveTransaction() {
+async function saveTransaction() {
   isSaving.value = true
   
-  // Simulate API call
-  setTimeout(() => {
-    const id = Math.max(0, ...transactions.value.map(t => t.id)) + 1
-    transactions.value.unshift({
-      id,
-      ...newTransaction.value
+  try {
+    await transactionsStore.addTransaction({
+      ...newTransaction.value,
+      // Convert amount to number if it's a string
+      amount: typeof newTransaction.value.amount === 'string' 
+        ? parseFloat(newTransaction.value.amount) 
+        : newTransaction.value.amount
     })
     
     // Reset form
@@ -370,23 +394,41 @@ function saveTransaction() {
       description: ''
     }
     
-    isSaving.value = false
     isAddTransactionModalOpen.value = false
-  }, 1000)
+  } catch (error) {
+    console.error('Failed to save transaction:', error)
+  } finally {
+    isSaving.value = false
+  }
 }
 
 function editTransaction(transaction) {
-  // Will implement later
-  console.log('Edit transaction', transaction)
+  // Clone the transaction to avoid modifying the original directly
+  newTransaction.value = {
+    ...transaction,
+    // Ensure date is a Date object
+    date: transaction.date instanceof Date ? transaction.date : new Date(transaction.date)
+  }
+  
+  isAddTransactionModalOpen.value = true
 }
 
-function deleteTransaction(id) {
-  // Will implement later
-  console.log('Delete transaction', id)
+async function deleteTransaction(id) {
+  if (confirm('Are you sure you want to delete this transaction?')) {
+    try {
+      await transactionsStore.deleteTransaction(id)
+    } catch (error) {
+      console.error('Failed to delete transaction:', error)
+    }
+  }
 }
 
-function logout() {
-  // Will implement with auth store later
-  console.log('Logout')
+async function logout() {
+  try {
+    await authStore.logout()
+    router.push('/auth/login')
+  } catch (error) {
+    console.error('Failed to logout:', error)
+  }
 }
 </script>

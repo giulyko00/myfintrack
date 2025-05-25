@@ -37,7 +37,19 @@
             aria-label="Toggle dark mode"
             @click="toggleColorMode"
           />
-          <UDropdown :items="userMenuItems">
+          <!-- Explicit logout button -->
+          <UButton
+            v-if="authStore.isAuthenticated"
+            icon="i-heroicons-arrow-right-on-rectangle"
+            color="gray"
+            variant="ghost"
+            aria-label="Logout"
+            @click="logout"
+          >
+            <span class="hidden sm:inline">Logout</span>
+          </UButton>
+          <!-- User avatar dropdown -->
+          <UDropdown v-if="authStore.isAuthenticated" :items="userMenuItems">
             <UButton
               color="gray"
               variant="ghost"
@@ -181,7 +193,8 @@ function toggleColorMode() {
 async function logout() {
   try {
     await authStore.logout()
-    router.push('/auth/login')
+    // Forzare un refresh completo della pagina dopo il logout
+    window.location.href = '/auth/login'
     isMobileMenuOpen.value = false
   } catch (error) {
     console.error('Failed to logout:', error)

@@ -5,12 +5,18 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     token: null,
     loading: false,
-    error: null
+    error: null,
+    // Credenziali utente test
+    testCredentials: {
+      email: 'demo@myfintrack.com',
+      password: 'Password123'
+    }
   }),
 
   getters: {
     isAuthenticated: (state) => !!state.token,
-    getUser: (state) => state.user
+    getUser: (state) => state.user,
+    getTestCredentials: (state) => state.testCredentials
   },
 
   actions: {
@@ -19,30 +25,39 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
 
       try {
-        // For demo purposes, using setTimeout to simulate API call
-        // In a real app, this would be an API call to your Django backend
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Simuliamo una breve attesa per dare l'impressione di una chiamata API
+        await new Promise(resolve => setTimeout(resolve, 800))
 
-        // For demo, accept any login with valid email format
-        if (!email.includes('@')) {
-          throw new Error('Invalid email format')
+        // Validazione email
+        if (!email || !email.includes('@')) {
+          throw new Error('Inserisci un indirizzo email valido')
         }
         
-        // Mock successful login
+        // Validazione password
+        if (!password || password.length < 8) {
+          throw new Error('La password deve essere di almeno 8 caratteri')
+        }
+        
+        // Verifica credenziali con l'utente di test
+        if (email !== this.testCredentials.email || password !== this.testCredentials.password) {
+          throw new Error('Credenziali non valide. Utilizza le credenziali di test visualizzate.')
+        }
+        
+        // Login avvenuto con successo
         const userData = {
           id: 1,
           email,
-          name: email.split('@')[0],
+          name: 'Utente Demo',
           created_at: new Date().toISOString()
         }
         
-        const token = 'mock-jwt-token-' + Math.random().toString(36).substring(2)
+        const token = 'jwt-token-demo-' + Math.random().toString(36).substring(2)
         
-        // Save to state
+        // Salva nello state
         this.user = userData
         this.token = token
         
-        // Save to localStorage if remember is true
+        // Salva nel localStorage se remember è true
         if (remember) {
           localStorage.setItem('auth.token', token)
           localStorage.setItem('auth.user', JSON.stringify(userData))

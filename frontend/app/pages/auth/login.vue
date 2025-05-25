@@ -9,12 +9,35 @@
       </template>
       
       <div class="space-y-6">
+        <!-- Credenziali di test -->
+        <UCard
+          class="mb-6 border-2 border-primary-100 dark:border-primary-800"
+        >
+          <template #header>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-key" class="text-primary-500" />
+              <h3 class="text-base font-semibold">Credenziali di test</h3>
+            </div>
+          </template>
+          
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center justify-between border-b pb-2">
+              <span class="font-medium">Email:</span>
+              <code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">demo@myfintrack.com</code>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="font-medium">Password:</span>
+              <code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">Password123</code>
+            </div>
+          </div>
+        </UCard>
+
         <form @submit.prevent="login" class="space-y-4">
           <UFormGroup label="Email" name="email">
             <UInput
               v-model="email"
               type="email"
-              placeholder="email@example.com"
+              placeholder="demo@myfintrack.com"
               autocomplete="email"
               required
             />
@@ -30,13 +53,7 @@
           </UFormGroup>
 
           <div class="flex items-center justify-between">
-            <UCheckbox v-model="rememberMe" label="Remember me" name="remember" />
-            <UButton
-              variant="link"
-              color="primary"
-              to="#"
-              label="Forgot password?"
-            />
+            <UCheckbox v-model="rememberMe" label="Ricordami" name="remember" />
           </div>
 
           <UAlert
@@ -53,24 +70,14 @@
             color="primary"
             block
             :loading="isLoading"
-            label="Sign in"
+            label="Accedi"
           />
         </form>
 
-
-      </div>
-
-      <template #footer>
-        <div class="text-center text-sm">
-          Don't have an account?
-          <UButton
-            variant="link"
-            color="primary"
-            to="#"
-            label="Create an account"
-          />
+        <div class="text-center text-sm text-gray-500">
+          <p>Questa è una demo. Utilizza le credenziali di test per accedere.</p>
         </div>
-      </template>
+      </div>
     </UCard>
   </div>
 </template>

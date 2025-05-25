@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+  <div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
     <UCard class="w-full max-w-md">
       <template #header>
         <div class="flex flex-col items-center space-y-2">
@@ -57,31 +57,7 @@
           />
         </form>
 
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200 dark:border-gray-800"></div>
-          </div>
-          <div class="relative flex justify-center text-xs uppercase">
-            <span class="bg-white dark:bg-gray-900 px-2 text-gray-500">Or continue with</span>
-          </div>
-        </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <UButton
-            icon="i-simple-icons-google"
-            color="white" 
-            variant="outline"
-            label="Google"
-            block
-          />
-          <UButton
-            icon="i-simple-icons-github"
-            color="white"
-            variant="outline"
-            label="GitHub"
-            block
-          />
-        </div>
       </div>
 
       <template #footer>

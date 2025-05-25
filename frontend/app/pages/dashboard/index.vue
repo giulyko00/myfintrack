@@ -1,30 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Header -->
-    <header class="border-b border-gray-200 dark:border-gray-800">
-      <div class="container flex items-center justify-between py-4">
-        <h1 class="text-xl font-bold">MyFinTrack</h1>
-        <div class="flex items-center gap-4">
-          <UButton
-            icon="i-heroicons-moon"
-            color="gray"
-            variant="ghost"
-            aria-label="Toggle dark mode"
-            @click="toggleColorMode"
-          />
-          <UButton
-            icon="i-heroicons-arrow-right-on-rectangle"
-            color="gray"
-            variant="ghost"
-            aria-label="Logout"
-            @click="logout"
-          />
-        </div>
-      </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container py-8">
+  <NuxtLayout name="default">
+    <div class="container py-8">
       <!-- Loading indicator -->
       <div v-if="transactionsStore.loading" class="flex justify-center py-8">
         <UProgress animation="carousel" indeterminate color="primary" />
@@ -255,8 +231,8 @@
           </form>
         </UCard>
       </UModal>
-    </main>
-  </div>
+    </div>
+  </NuxtLayout>
 </template>
 
 <script setup>

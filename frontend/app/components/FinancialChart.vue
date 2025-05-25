@@ -96,7 +96,7 @@ const chartConfig = computed(() => {
               if (context.parsed.y !== null) {
                 label += new Intl.NumberFormat('en-US', { 
                   style: 'currency', 
-                  currency: 'EUR',
+                  currency: 'USD',
                   maximumFractionDigits: 0
                 }).format(context.parsed.y);
               }

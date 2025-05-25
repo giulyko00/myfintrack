@@ -57,23 +57,23 @@
             
             <!-- Menu dropdown custom implementation -->
             <div v-if="isUserMenuOpen" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border border-gray-200 dark:border-gray-700">
-              <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">Opzioni utente</div>
+              <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">User Options</div>
               
               <button @click="goToProfile" class="w-full flex items-center px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <UIcon name="i-heroicons-user-circle" class="mr-2" />
-                Profilo
+                Profile
               </button>
               
               <button @click="goToSettings" class="w-full flex items-center px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <UIcon name="i-heroicons-cog-6-tooth" class="mr-2" />
-                Impostazioni
+                Settings
               </button>
               
               <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
               
               <button @click="logout" class="w-full flex items-center px-4 py-2 text-sm text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <UIcon name="i-heroicons-arrow-right-on-rectangle" class="mr-2" />
-                Esci
+                Sign Out
               </button>
             </div>
           </div>
@@ -205,21 +205,21 @@ const avatarUrl = computed(() => {
 const userMenuItems = computed(() => [
   [
     {
-      label: 'Profilo',
+      label: 'Profile',
       icon: 'i-heroicons-user-circle',
       click: () => router.push('/profile')
     },
     {
-      label: 'Impostazioni',
+      label: 'Settings',
       icon: 'i-heroicons-cog-6-tooth',
       click: () => router.push('/settings')
     }
   ],
   [
     {
-      label: 'Esci',
+      label: 'Sign Out',
       icon: 'i-heroicons-arrow-right-on-rectangle',
-      click: () => logout() // Assicurarsi che la funzione di logout venga chiamata correttamente
+      click: () => logout() // Ensure the logout function is called correctly
     }
   ]
 ])
@@ -249,6 +249,24 @@ async function logout() {
   padding-left: 1rem;
   padding-right: 1rem;
   max-width: 80rem;
+}
+
+/* Aggiunge il cursore pointer a tutti gli elementi cliccabili */
+button,
+.u-button,
+a,
+[role="button"],
+[type="button"],
+[type="submit"],
+.clickable,
+.pointer {
+  cursor: pointer !important;
+}
+
+/* Assicura che i menu dropdown abbiano il cursore pointer */
+.user-menu-container button,
+.dropdown-item {
+  cursor: pointer !important;
 }
 
 .page-enter-active,

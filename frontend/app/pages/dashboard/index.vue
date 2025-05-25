@@ -16,7 +16,7 @@
               <UIcon name="i-heroicons-banknotes" class="text-emerald-500" />
             </div>
           </template>
-          <div class="text-2xl font-bold">€{{ formatCurrency(totalBalance) }}</div>
+          <div class="text-2xl font-bold">${{ formatCurrency(totalBalance) }}</div>
           <template #footer>
             <p class="text-xs text-gray-500">Updated today</p>
           </template>
@@ -29,7 +29,7 @@
               <UIcon name="i-heroicons-arrow-trending-up" class="text-emerald-500" />
             </div>
           </template>
-          <div class="text-2xl font-bold text-emerald-500">€{{ formatCurrency(monthlyIncome) }}</div>
+          <div class="text-2xl font-bold text-emerald-500">${{ formatCurrency(monthlyIncome) }}</div>
           <template #footer>
             <p class="text-xs text-gray-500">{{ currentMonthName }}</p>
           </template>
@@ -42,7 +42,7 @@
               <UIcon name="i-heroicons-arrow-trending-down" class="text-red-500" />
             </div>
           </template>
-          <div class="text-2xl font-bold text-red-500">€{{ formatCurrency(monthlyExpenses) }}</div>
+          <div class="text-2xl font-bold text-red-500">${{ formatCurrency(monthlyExpenses) }}</div>
           <template #footer>
             <p class="text-xs text-gray-500">{{ currentMonthName }}</p>
           </template>
@@ -84,7 +84,7 @@
                 </td>
                 <td class="py-3 px-4">{{ transaction.description }}</td>
                 <td class="py-3 px-4 text-right" :class="transaction.type === 'income' ? 'text-emerald-500' : 'text-red-500'">
-                  {{ transaction.type === 'income' ? '+' : '-' }}€{{ formatCurrency(Math.abs(transaction.amount)) }}
+                  {{ transaction.type === 'income' ? '+' : '-' }}${{ formatCurrency(Math.abs(transaction.amount)) }}
                 </td>
                 <td class="py-3 px-4">
                   <div class="flex items-center gap-2">

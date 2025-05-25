@@ -47,7 +47,7 @@ export const useAuthStore = defineStore('auth', {
         const userData = {
           id: 1,
           email,
-          name: 'Utente Demo',
+          name: 'Demo User',
           created_at: new Date().toISOString()
         }
         

@@ -141,7 +141,8 @@ export const useTransactionsStore = defineStore('transactions', {
       const today = new Date()
       const monthsData = []
       
-      for (let i = 0; i < 6; i++) {
+      // Creare dati per ultimi 6 mesi, in ordine cronologico (dal meno recente al più recente)
+      for (let i = 5; i >= 0; i--) {
         const month = new Date(today.getFullYear(), today.getMonth() - i, 1)
         const monthName = month.toLocaleString('en-US', { month: 'short' })
         
@@ -161,7 +162,7 @@ export const useTransactionsStore = defineStore('transactions', {
           .filter(t => t.type === 'expense')
           .reduce((sum, t) => sum + t.amount, 0)
           
-        monthsData.unshift({
+        monthsData.push({
           month: monthName,
           income,
           expense,
@@ -292,12 +293,47 @@ export const useTransactionsStore = defineStore('transactions', {
         const response = await api.getMonthlyStats()
         
         if (Array.isArray(response)) {
-          this.monthlyStats = response.map(item => ({
-            month: new Date(item.year, item.month - 1, 1).toLocaleString('default', { month: 'short' }),
-            income: parseFloat(item.income || 0),
-            expense: parseFloat(item.expenses || 0),
-            balance: parseFloat(item.savings || 0)
-          })).slice(-6) // Get the last 6 months
+          console.log('Dati mensili ricevuti dal backend:', response)
+          
+          // Ottieni il mese e l'anno correnti
+          const currentDate = new Date()
+          const currentMonth = currentDate.getMonth() + 1 // JavaScript mesi sono 0-11, i dati API sono 1-12
+          const currentYear = currentDate.getFullYear()
+          
+          // Filtra per ottenere solo gli ultimi 6 mesi fino al mese corrente
+          const relevantMonths = response.filter(item => {
+            // Calcola se questo mese è uno degli ultimi 6 mesi
+            if (item.year < currentYear) return false // Escludi anni precedenti
+            
+            if (item.year === currentYear) {
+              return item.month <= currentMonth && item.month > currentMonth - 6
+            }
+            
+            return false
+          })
+          
+          // Ordina i mesi cronologicamente
+          relevantMonths.sort((a, b) => {
+            if (a.year !== b.year) return a.year - b.year
+            return a.month - b.month
+          })
+          
+          console.log('Mesi rilevanti selezionati e ordinati:', relevantMonths)
+          
+          // Converti i dati nel formato richiesto dal grafico
+          this.monthlyStats = relevantMonths.map(item => {
+            // Converti il numero del mese in nome abbreviato
+            const monthName = new Date(item.year, item.month - 1, 1).toLocaleString('en-US', { month: 'short' })
+            
+            return {
+              month: monthName,
+              income: parseFloat(item.income || 0),
+              expense: parseFloat(item.expenses || 0),
+              balance: parseFloat(item.savings || 0)
+            }
+          })
+          
+          console.log('Dati mensili processati per il grafico:', this.monthlyStats)
         }
       } catch (error) {
         console.error('Error fetching monthly stats:', error)

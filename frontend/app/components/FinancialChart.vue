@@ -16,15 +16,18 @@
       </template>
       
       <div class="h-60">
-        <canvas ref="chartRef"></canvas>
+        <canvas :id="chartId" ref="chartRef"></canvas>
       </div>
     </UCard>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, onBeforeUnmount, onUpdated } from 'vue'
 import Chart from 'chart.js/auto'
+
+// Genera un ID univoco per questo componente grafico
+const chartId = `chart-${Math.random().toString(36).substring(2, 9)}`
 
 const props = defineProps({
   title: {
@@ -126,20 +129,55 @@ const chartConfig = computed(() => {
 
 // Initialize chart
 function initChart() {
-  if (chartInstance.value) {
-    chartInstance.value.destroy()
-  }
-  
-  if (chartRef.value) {
-    chartInstance.value = new Chart(chartRef.value, chartConfig.value)
+  try {
+    // Sempre distruggere l'istanza precedente se esiste
+    if (chartInstance.value) {
+      chartInstance.value.destroy();
+      chartInstance.value = null;
+    }
+    
+    // Attendere il prossimo ciclo di rendering
+    setTimeout(() => {
+      // Verificare nuovamente che il canvas esista e sia pronto
+      const canvas = document.getElementById(chartId);
+      if (canvas) {
+        // Utilizziamo l'ID univoco invece del riferimento ref
+        chartInstance.value = new Chart(canvas, chartConfig.value);
+      }
+    }, 50);
+  } catch (error) {
+    console.error('Errore durante l\'inizializzazione del grafico:', error);
   }
 }
 
-// Watch for data changes
-watch(() => props.data, initChart, { deep: true })
-watch(chartType, initChart)
+// Watchers con migliore gestione degli errori
+watch(() => props.data, (newValue) => {
+  if (newValue && newValue.length > 0) {
+    initChart();
+  }
+}, { deep: true });
 
+watch(chartType, () => {
+  initChart();
+});
+
+// Gestione completa del ciclo di vita
 onMounted(() => {
-  initChart()
-})
+  // Ritardiamo l'inizializzazione per assicurarci che il DOM sia pronto
+  setTimeout(() => {
+    initChart();
+  }, 100);
+});
+
+// Pulizia quando il componente viene smontato
+onBeforeUnmount(() => {
+  if (chartInstance.value) {
+    try {
+      chartInstance.value.destroy();
+      chartInstance.value = null;
+    } catch (error) {
+      console.warn('Errore durante la pulizia del grafico:', error);
+    }
+  }
+});
 </script>

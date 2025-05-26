@@ -164,115 +164,130 @@
         </template>
       </UAlert>
       
-      <!-- Add/Edit Transaction Modal -->
-      <UModal v-model="isAddTransactionModalOpen" :ui="{ width: 'sm:max-w-md' }">
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h3 class="text-base font-semibold">{{ isEditing ? 'Edit Transaction' : 'Add New Transaction' }}</h3>
-              <UButton
-                color="gray"
-                variant="ghost"
-                icon="i-heroicons-x-mark"
-                class="-my-1"
-                @click="isAddTransactionModalOpen = false"
-              />
-            </div>
-          </template>
+      <!-- Add/Edit Transaction Modal (Custom Implementation) -->
+      <div v-if="isAddTransactionModalOpen" class="fixed inset-0 z-50 flex items-center justify-center">
+        <!-- Overlay con blur leggero solo per lo sfondo -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b dark:border-gray-700 p-4">
+            <h3 class="text-lg font-semibold">{{ isEditing ? 'Edit Transaction' : 'Add New Transaction' }}</h3>
+            <button 
+              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              @click="isAddTransactionModalOpen = false"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
 
-          <form @submit.prevent="saveTransaction">
-            <!-- Transaction Type at the top -->
-            <div class="w-full bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg mb-4">
-              <UFormGroup label="Transaction Type" name="type" class="mb-0 w-full">
-                <URadioGroup
-                  v-model="newTransaction.type"
-                  :options="[
-                    { label: 'Income', value: 'income' },
-                    { label: 'Expense', value: 'expense' }
-                  ]"
-                  orientation="horizontal"
-                  class="justify-center w-full"
-                />
-              </UFormGroup>
-            </div>
-            
-            <!-- Form Error Alert -->
-            <UAlert v-if="showFormError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" class="mb-4">
-              {{ formErrorMessage }}
-            </UAlert>
+          <!-- Body -->
+          <div class="p-4">
+            <form @submit.prevent="saveTransaction">
+              <!-- Transaction Type -->
+              <div class="w-full bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg mb-4">
+                <div class="mb-1">Transaction Type</div>
+                <div class="flex justify-center gap-6">
+                  <label class="inline-flex items-center">
+                    <input type="radio" class="form-radio" v-model="newTransaction.type" value="income">
+                    <span class="ml-2">Income</span>
+                  </label>
+                  <label class="inline-flex items-center">
+                    <input type="radio" class="form-radio" v-model="newTransaction.type" value="expense">
+                    <span class="ml-2">Expense</span>
+                  </label>
+                </div>
+              </div>
 
-            <!-- All form fields in one row -->
-            <div class="flex flex-wrap items-end space-x-2 mb-4">
-              <!-- Amount -->
-              <div class="flex-1 min-w-[120px]">
-                <UFormGroup label="Amount" name="amount" required>
+              <!-- Form Error Alert -->
+              <div v-if="showFormError" class="p-3 mb-4 text-sm text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-300 rounded-lg">
+                {{ formErrorMessage }}
+              </div>
+
+              <!-- Form Fields -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <!-- Amount -->
+                <div>
+                  <label class="block text-sm font-medium mb-1">Amount <span class="text-red-500">*</span></label>
                   <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <span class="text-gray-500 dark:text-gray-400">$</span>
                     </div>
-                    <UInput
+                    <input
                       v-model="newTransaction.amount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
+                      type="text"
                       placeholder="0.00"
-                      class="pl-7 w-full"
+                      class="w-full pl-7 py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
                       required
                     />
                   </div>
-                </UFormGroup>
-              </div>
+                </div>
 
-              <!-- Category -->
-              <div class="flex-1 min-w-[200px]">
-                <UFormGroup label="Category" name="category" required>
-                  <USelect
+                <!-- Category -->
+                <div>
+                  <label class="block text-sm font-medium mb-1">Category <span class="text-red-500">*</span></label>
+                  <select 
                     v-model="newTransaction.category"
-                    :options="categoryOptions"
-                    placeholder="Select category"
-                    class="w-full"
+                    class="w-full py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    required
+                  >
+                    <option value="" disabled>Select category</option>
+                    <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Date -->
+                <div>
+                  <label class="block text-sm font-medium mb-1">Date <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="formattedDate"
+                    type="date"
+                    class="w-full py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
                     required
                   />
-                </UFormGroup>
-              </div>
+                </div>
 
-              <!-- Date -->
-              <div class="flex-1 min-w-[150px]">
-                <UFormGroup label="Date" name="date" required>
-                  <UDatePicker v-model="newTransaction.date" class="w-full" />
-                </UFormGroup>
-              </div>
-
-              <!-- Description -->
-              <div class="flex-1 min-w-[400px]">
-                <UFormGroup label="Description" name="description">
-                  <UInput
+                <!-- Description -->
+                <div>
+                  <label class="block text-sm font-medium mb-1">Description</label>
+                  <input
                     v-model="newTransaction.description"
+                    type="text"
                     placeholder="Enter description"
-                    class="w-full"
+                    class="w-full py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                </UFormGroup>
+                </div>
               </div>
-            </div>
 
-            <div class="flex justify-end gap-2 mt-6">
-              <UButton
-                color="gray"
-                variant="soft"
-                label="Cancel"
-                @click="isAddTransactionModalOpen = false"
-              />
-              <UButton
-                type="submit"
-                color="primary"
-                :label="isEditing ? 'Update Transaction' : 'Save Transaction'"
-                :loading="isSaving"
-                :disabled="isSaving"
-              />
-            </div>
-          </form>
-        </UCard>
-      </UModal>
+              <!-- Actions -->
+              <div class="flex justify-end gap-2 mt-6">
+                <button
+                  type="button"
+                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  @click="isAddTransactionModalOpen = false"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  :disabled="isSaving"
+                >
+                  <span v-if="isSaving" class="inline-block mr-2">
+                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </span>
+                  {{ isEditing ? 'Update Transaction' : 'Save Transaction' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </NuxtLayout>
 </template>
@@ -306,12 +321,22 @@ onMounted(async () => {
   
   // Fetch data
   isLoading.value = true
+  showError.value = false
   try {
-    // Load transactions and categories in parallel
+    // Load all required data in parallel
     await Promise.all([
       transactionsStore.fetchTransactions(),
-      transactionsStore.fetchCategories()
+      transactionsStore.fetchCategories(),
+      transactionsStore.fetchSummary(),
+      transactionsStore.fetchMonthlyStats()
     ])
+    
+    // Check if we have transactions
+    if (transactionsStore.getAllTransactions.length === 0) {
+      console.log('No transactions found. Dashboard will show empty state.')
+    } else {
+      console.log(`Loaded ${transactionsStore.getAllTransactions.length} transactions successfully.`)
+    }
   } catch (error) {
     console.error('Error loading dashboard data:', error)
     showError.value = true
@@ -396,7 +421,31 @@ const toast = useToast()
 
 // Category options from the store
 const categoryOptions = computed(() => {
-  return transactionsStore.getCategoriesForType(newTransaction.value.type)
+  // Controlla che ci siano categorie disponibili nel tipo selezionato
+  const categories = transactionsStore.getCategoriesForType(newTransaction.value.type)
+  
+  // Log per debug
+  console.log('Categorie disponibili per', newTransaction.value.type, ':', categories)
+  
+  if (!categories || categories.length === 0) {
+    console.warn('Nessuna categoria trovata per il tipo:', newTransaction.value.type)
+  }
+  
+  return categories
+})
+
+// Computed property per gestire il formato della data
+const formattedDate = computed({
+  get() {
+    // Converti la data in formato stringa YYYY-MM-DD per l'input date
+    if (!newTransaction.value.date) return ''
+    const date = new Date(newTransaction.value.date)
+    return date.toISOString().split('T')[0]
+  },
+  set(val) {
+    // Quando l'utente cambia la data, aggiorna il valore in newTransaction
+    newTransaction.value.date = new Date(val)
+  }
 })
 
 // Format helpers
@@ -421,30 +470,45 @@ async function saveTransaction() {
     return
   }
   
+  // Validate amount format (since we're using text input now)
+  const amountValue = newTransaction.value.amount.toString().replace(',', '.')
+  const amount = parseFloat(amountValue)
+  
+  if (isNaN(amount) || amount <= 0) {
+    showFormError.value = true
+    formErrorMessage.value = 'Please enter a valid amount'
+    return
+  }
+  
   isSaving.value = true
   showFormError.value = false
   
   try {
+    // Prepare transaction data
+    const transactionData = {
+      ...newTransaction.value,
+      amount,
+      // Make sure category is properly formatted
+      category: newTransaction.value.category, // Should be the category code value
+      date: newTransaction.value.date instanceof Date 
+        ? newTransaction.value.date 
+        : new Date(newTransaction.value.date)
+    }
+    
+    console.log('Saving transaction:', transactionData)
+    
     // Check if we're editing or creating a new transaction
     if (newTransaction.value.id) {
       // Editing existing transaction
-      await transactionsStore.updateTransaction(newTransaction.value.id, {
-        ...newTransaction.value,
-        // Convert amount to number if it's a string
-        amount: typeof newTransaction.value.amount === 'string' 
-          ? parseFloat(newTransaction.value.amount) 
-          : newTransaction.value.amount
-      })
+      await transactionsStore.updateTransaction(newTransaction.value.id, transactionData)
     } else {
       // Adding new transaction
-      await transactionsStore.addTransaction({
-        ...newTransaction.value,
-        // Convert amount to number if it's a string
-        amount: typeof newTransaction.value.amount === 'string' 
-          ? parseFloat(newTransaction.value.amount) 
-          : newTransaction.value.amount
-      })
+      await transactionsStore.addTransaction(transactionData)
     }
+    
+    // Refresh transactions to see the changes
+    await transactionsStore.fetchTransactions()
+    await transactionsStore.fetchSummary() // Also refresh summary data
     
     // Reset form
     resetTransactionForm()

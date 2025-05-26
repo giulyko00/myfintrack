@@ -5,23 +5,16 @@ export const useTransactionsStore = defineStore('transactions', {
   state: () => ({
     transactions: [],
     categories: {
-      income: [
-        { label: 'Salary', value: 'Salary' },
-        { label: 'Freelance', value: 'Freelance' },
-        { label: 'Investments', value: 'Investments' },
-        { label: 'Other Income', value: 'Other Income' }
-      ],
-      expense: [
-        { label: 'Food', value: 'Food' },
-        { label: 'Transport', value: 'Transport' },
-        { label: 'Utilities', value: 'Utilities' },
-        { label: 'Entertainment', value: 'Entertainment' },
-        { label: 'Housing', value: 'Housing' },
-        { label: 'Shopping', value: 'Shopping' },
-        { label: 'Health', value: 'Health' },
-        { label: 'Other Expense', value: 'Other Expense' }
-      ]
+      income: [],
+      expense: []
     },
+    summary: {
+      totalBalance: 0,
+      monthlyIncome: 0,
+      monthlyExpenses: 0,
+      categoryExpenses: []
+    },
+    monthlyStats: [],
     loading: false,
     error: null,
     filters: {
@@ -47,7 +40,13 @@ export const useTransactionsStore = defineStore('transactions', {
       })
     },
     
+    // Use the summary data from the backend when available
     getTotalBalance: (state) => {
+      if (state.summary.totalBalance !== undefined) {
+        return state.summary.totalBalance
+      }
+      
+      // Fallback to calculating from transactions
       return state.transactions.reduce((total, transaction) => {
         return transaction.type === 'income' 
           ? total + transaction.amount 
@@ -56,6 +55,11 @@ export const useTransactionsStore = defineStore('transactions', {
     },
     
     getMonthlyIncome: (state) => {
+      if (state.summary.monthlyIncome !== undefined) {
+        return state.summary.monthlyIncome
+      }
+      
+      // Fallback to calculating from transactions
       const currentMonth = new Date().getMonth()
       const currentYear = new Date().getFullYear()
       
@@ -70,6 +74,11 @@ export const useTransactionsStore = defineStore('transactions', {
     },
     
     getMonthlyExpenses: (state) => {
+      if (state.summary.monthlyExpenses !== undefined) {
+        return state.summary.monthlyExpenses
+      }
+      
+      // Fallback to calculating from transactions
       const currentMonth = new Date().getMonth()
       const currentYear = new Date().getFullYear()
       
@@ -84,7 +93,38 @@ export const useTransactionsStore = defineStore('transactions', {
     },
     
     getCategoriesForType: (state) => (type) => {
-      return type === 'income' ? state.categories.income : state.categories.expense
+      const categories = type === 'income' ? state.categories.income : state.categories.expense
+      
+      // Se non ci sono categorie, restituisci le categorie predefinite
+      if (!categories || categories.length === 0) {
+        console.warn(`No categories found for type: ${type}, using default categories`)
+        
+        // Categorie predefinite come fallback
+        if (type === 'income') {
+          return [
+            { label: 'Salary', value: 'SALARY' },
+            { label: 'Freelance', value: 'FREELANCE' },
+            { label: 'Investment', value: 'INVESTMENT' },
+            { label: 'Gift', value: 'GIFT' },
+            { label: 'Other Income', value: 'OTHER_INC' }
+          ]
+        } else {
+          return [
+            { label: 'Housing', value: 'HOUSING' },
+            { label: 'Food', value: 'FOOD' },
+            { label: 'Transportation', value: 'TRANSPORT' },
+            { label: 'Health', value: 'HEALTH' },
+            { label: 'Entertainment', value: 'ENTERTAIN' },
+            { label: 'Education', value: 'EDUCATION' },
+            { label: 'Shopping', value: 'SHOPPING' },
+            { label: 'Utilities', value: 'UTILITIES' },
+            { label: 'Travel', value: 'TRAVEL' },
+            { label: 'Other Expense', value: 'OTHER_EXP' }
+          ]
+        }
+      }
+      
+      return categories
     },
     
     getCategoryList: (state) => {
@@ -92,7 +132,12 @@ export const useTransactionsStore = defineStore('transactions', {
     },
     
     getMonthlyStats: (state) => {
-      // Get data for the last 6 months
+      // Use the data from the backend if available
+      if (state.monthlyStats && state.monthlyStats.length > 0) {
+        return state.monthlyStats
+      }
+      
+      // Fallback to calculating from transactions
       const today = new Date()
       const monthsData = []
       
@@ -128,12 +173,23 @@ export const useTransactionsStore = defineStore('transactions', {
     },
     
     getCategoryStats: (state) => {
+      // Use the data from the backend if available
+      if (state.summary.categoryExpenses && state.summary.categoryExpenses.length > 0) {
+        return state.summary.categoryExpenses.map(item => ({
+          category: item.category || item.label,
+          amount: parseFloat(item.total || item.amount)
+        }))
+      }
+      
+      // Fallback to calculating from transactions
       const categoryTotals = {}
       
-      // Initialize categories
-      state.categories.expense.forEach(cat => {
-        categoryTotals[cat.value] = 0
-      })
+      // Initialize categories if available
+      if (state.categories.expense.length > 0) {
+        state.categories.expense.forEach(cat => {
+          categoryTotals[cat.value] = 0
+        })
+      }
       
       // Calculate spending by category for current month
       const currentMonth = new Date().getMonth()
@@ -168,6 +224,11 @@ export const useTransactionsStore = defineStore('transactions', {
         
         // Process the transactions to ensure dates are Date objects
         const transactions = Array.isArray(response) ? response : []
+        
+        if (transactions.length === 0) {
+          console.log('No transactions found in the database')
+        }
+        
         this.transactions = transactions.map(transaction => ({
           ...transaction,
           date: transaction.date ? new Date(transaction.date) : new Date(),
@@ -177,63 +238,8 @@ export const useTransactionsStore = defineStore('transactions', {
 
         // Sort transactions by date (newest first)
         this.transactions.sort((a, b) => b.date - a.date)
-        
-        // If API is not available yet, fall back to mock data
-        if (this.transactions.length === 0) {
-          // Default mock data for development
-          this.transactions = [
-            {
-              id: 1,
-              date: new Date('2025-05-22'),
-              category: 'Salary',
-              description: 'Monthly salary',
-              amount: 2500,
-              type: 'income'
-            },
-            {
-              id: 2,
-              date: new Date('2025-05-20'),
-              category: 'Food',
-              description: 'Grocery shopping',
-              amount: 85.50,
-              type: 'expense'
-            },
-            {
-              id: 3,
-              date: new Date('2025-05-18'),
-              category: 'Transport',
-              description: 'Fuel',
-              amount: 45.00,
-              type: 'expense'
-            },
-            {
-              id: 4,
-              date: new Date('2025-05-15'),
-              category: 'Utilities',
-              description: 'Electricity bill',
-              amount: 75.20,
-              type: 'expense'
-            },
-            {
-              id: 5,
-              date: new Date('2025-05-10'),
-              category: 'Freelance',
-              description: 'Web development project',
-              amount: 600,
-              type: 'income'
-            },
-            {
-              id: 6,
-              date: new Date('2025-04-25'),
-              category: 'Salary',
-              description: 'Monthly salary',
-              amount: 2500,
-              type: 'income'
-            }
-          ]
-        }
       } catch (error) {
-        this.error = error.message || 'Failed to fetch transactions'
+        this.error = error.message || 'Failed to fetch transactions from the database'
         console.error('Error fetching transactions:', error)
         
         // Fallback to empty array on error
@@ -254,6 +260,48 @@ export const useTransactionsStore = defineStore('transactions', {
       } catch (error) {
         console.error('Error fetching categories:', error)
         // Categories are already defined in state, so no need for fallback
+      }
+    },
+    
+    async fetchSummary() {
+      try {
+        const api = useApi()
+        const response = await api.request('GET', 'transactions/summary/')
+        
+        if (response) {
+          this.summary = {
+            totalBalance: parseFloat(response.balance || 0),
+            monthlyIncome: parseFloat(response.total_income || 0),
+            monthlyExpenses: parseFloat(response.total_expenses || 0),
+            categoryExpenses: Array.isArray(response.category_expenses) ? 
+              response.category_expenses.map(item => ({
+                category: item.category,
+                amount: parseFloat(item.total)
+              })) : []
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching summary:', error)
+        // Keep using calculated values from transactions
+      }
+    },
+    
+    async fetchMonthlyStats() {
+      try {
+        const api = useApi()
+        const response = await api.request('GET', 'transactions/monthly_summary/')
+        
+        if (Array.isArray(response)) {
+          this.monthlyStats = response.map(item => ({
+            month: new Date(item.year, item.month - 1, 1).toLocaleString('default', { month: 'short' }),
+            income: parseFloat(item.income || 0),
+            expense: parseFloat(item.expenses || 0),
+            balance: parseFloat(item.savings || 0)
+          })).slice(-6) // Get the last 6 months
+        }
+      } catch (error) {
+        console.error('Error fetching monthly stats:', error)
+        // Keep using calculated values from transactions
       }
     },
     

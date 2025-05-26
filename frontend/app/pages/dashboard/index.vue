@@ -81,7 +81,7 @@
                   />
                 </td>
                 <td class="py-3 px-4" :title="transaction.description || '-'">
-                  <span class="block truncate max-w-[400px]">{{ transaction.description || '-' }}</span>
+                  <span class="block truncate max-w-[200px]">{{ transaction.description || '-' }}</span>
                 </td>
                 <td class="py-3 px-4 text-right" :class="transaction.type === 'income' ? 'text-emerald-500' : 'text-red-500'">
                   {{ transaction.type === 'income' ? '+' : '-' }}${{ formatCurrency(Math.abs(transaction.amount)) }}
@@ -546,6 +546,11 @@ function resetTransactionForm() {
 }
 
 function editTransaction(transaction) {
+  // Assicurati che le categorie siano state caricate
+  if (transactionsStore.categories.income.length === 0 || transactionsStore.categories.expense.length === 0) {
+    transactionsStore.fetchCategories();
+  }
+  
   // Clone the transaction to avoid modifying the original directly
   newTransaction.value = {
     ...transaction,
@@ -553,8 +558,30 @@ function editTransaction(transaction) {
     date: transaction.date instanceof Date ? transaction.date : new Date(transaction.date)
   }
   
-  isEditing.value = true
-  isAddTransactionModalOpen.value = true
+  // Log per debug
+  console.log('Editing transaction with category:', transaction.category);
+  
+  // Forzare il reset e poi l'assegnazione della categoria
+  // Il setTimeout è un modo per assicurarsi che il binding Vue sia aggiornato
+  setTimeout(() => {
+    // Questo codice viene eseguito dopo che il DOM è stato aggiornato
+    if (transaction.category) {
+      // Trova l'esatta categoria (value) dalle opzioni disponibili
+      const categories = transactionsStore.getCategoriesForType(transaction.type);
+      const foundCategory = categories.find(c => c.value === transaction.category || c.label === transaction.category);
+      
+      if (foundCategory) {
+        console.log('Found matching category:', foundCategory);
+        newTransaction.value.category = foundCategory.value;
+      } else {
+        console.log('No matching category found, using original:', transaction.category);
+        newTransaction.value.category = transaction.category;
+      }
+    }
+  }, 50);
+  
+  isEditing.value = true;
+  isAddTransactionModalOpen.value = true;
 }
 
 async function deleteTransaction(id) {

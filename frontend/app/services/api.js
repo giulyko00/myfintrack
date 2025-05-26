@@ -67,24 +67,59 @@ export default class ApiService {
 
   // Transactions API methods
   async getTransactions() {
-    const response = await this.request('GET', 'transactions/');
-    
-    // Transform backend data format to frontend format
-    if (Array.isArray(response)) {
-      return response.map(transaction => ({
-        id: transaction.id,
-        date: transaction.date,
-        // Map transaction_type IN/EX to income/expense
-        type: transaction.transaction_type === 'IN' ? 'income' : 'expense',
-        // Use the actual category from backend
-        category: transaction.category_display || transaction.category,
-        description: transaction.description,
-        // Ensure positive amount
-        amount: Math.abs(parseFloat(transaction.amount))
-      }));
+    try {
+      console.log('Fetching transactions from API...');
+      const response = await this.request('GET', 'transactions/');
+      
+      console.log('API Response:', response);
+      
+      // Check if response is valid
+      if (!response) {
+        console.error('Empty response from API');
+        return [];
+      }
+      
+      // Transform backend data format to frontend format
+      if (Array.isArray(response)) {
+        console.log(`Processing ${response.length} transactions`);
+        return response.map(transaction => {
+          // Add logging for debugging
+          if (!transaction.id) console.warn('Transaction missing ID:', transaction);
+          if (!transaction.date) console.warn('Transaction missing date:', transaction);
+          
+          return {
+            id: transaction.id,
+            date: transaction.date,
+            // Map transaction_type IN/EX to income/expense
+            type: transaction.transaction_type === 'IN' ? 'income' : 'expense',
+            // Use the actual category from backend
+            category: transaction.category_display || transaction.category,
+            description: transaction.description || '',
+            // Ensure positive amount
+            amount: Math.abs(parseFloat(transaction.amount || 0))
+          };
+        });
+      } else {
+        console.warn('Response is not an array:', typeof response);
+        // Handle case where response might be an object with results property
+        if (response && response.results && Array.isArray(response.results)) {
+          console.log(`Processing ${response.results.length} transactions from results property`);
+          return response.results.map(transaction => ({
+            id: transaction.id,
+            date: transaction.date,
+            type: transaction.transaction_type === 'IN' ? 'income' : 'expense',
+            category: transaction.category_display || transaction.category,
+            description: transaction.description || '',
+            amount: Math.abs(parseFloat(transaction.amount || 0))
+          }));
+        }
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error in getTransactions:', error);
+      throw error;
     }
-    
-    return [];
   }
 
   async addTransaction(transaction) {

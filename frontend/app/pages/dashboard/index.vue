@@ -49,23 +49,21 @@
         </UCard>
       </div>
 
-      <!-- Transactions Section -->
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold">Recent Transactions</h2>
-        <UButton 
-          color="primary" 
-          icon="i-heroicons-plus" 
-          label="Add Transaction"
-          @click="isAddTransactionModalOpen = true"
-        />
-      </div>
-
-      <!-- Transaction List -->
-      <UCard v-if="transactions.length">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left">
+      <!-- Recent Transactions -->
+      <UCard class="mb-8">
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold">Recent Transactions</h3>
+            <UButton size="sm" @click="isAddTransactionModalOpen = true">
+              Add Transaction
+            </UButton>
+          </div>
+        </template>
+        
+        <div v-if="transactions && transactions.length > 0" class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead>
-              <tr class="border-b dark:border-gray-700">
+              <tr>
                 <th class="py-3 px-4 font-medium">Date</th>
                 <th class="py-3 px-4 font-medium">Category</th>
                 <th class="py-3 px-4 font-medium">Description</th>
@@ -79,10 +77,10 @@
                 <td class="py-3 px-4">
                   <UBadge 
                     :color="transaction.type === 'income' ? 'emerald' : 'red'" 
-                    :label="transaction.category"
+                    :label="transaction.category || 'Unknown'"
                   />
                 </td>
-                <td class="py-3 px-4">{{ transaction.description }}</td>
+                <td class="py-3 px-4">{{ transaction.description || '-' }}</td>
                 <td class="py-3 px-4 text-right" :class="transaction.type === 'income' ? 'text-emerald-500' : 'text-red-500'">
                   {{ transaction.type === 'income' ? '+' : '-' }}${{ formatCurrency(Math.abs(transaction.amount)) }}
                 </td>
@@ -108,17 +106,22 @@
             </tbody>
           </table>
         </div>
+        
+        <div v-else-if="transactionsStore.loading" class="py-6 text-center text-gray-500">
+          <p>Loading transactions...</p>
+        </div>
+        
+        <div v-else class="py-6 text-center">
+          <UAlert
+            icon="i-heroicons-information-circle"
+            title="No transactions found"
+            description="Add your first transaction to get started."
+            color="primary"
+            variant="soft"
+            class="mx-auto max-w-md"
+          />
+        </div>
       </UCard>
-
-      <UAlert
-        v-else
-        icon="i-heroicons-information-circle"
-        title="No transactions found"
-        description="Add your first transaction to get started."
-        color="primary"
-        variant="soft"
-        class="mt-4"
-      />
       
       <!-- Financial Charts Section -->
       <div v-if="transactions.length > 0" class="mt-8">

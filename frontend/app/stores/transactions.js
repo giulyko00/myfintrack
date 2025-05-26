@@ -266,7 +266,7 @@ export const useTransactionsStore = defineStore('transactions', {
     async fetchSummary() {
       try {
         const api = useApi()
-        const response = await api.request('GET', 'transactions/summary/')
+        const response = await api.getSummary()
         
         if (response) {
           this.summary = {
@@ -289,7 +289,7 @@ export const useTransactionsStore = defineStore('transactions', {
     async fetchMonthlyStats() {
       try {
         const api = useApi()
-        const response = await api.request('GET', 'transactions/monthly_summary/')
+        const response = await api.getMonthlyStats()
         
         if (Array.isArray(response)) {
           this.monthlyStats = response.map(item => ({

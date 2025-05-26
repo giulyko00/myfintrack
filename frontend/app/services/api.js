@@ -165,6 +165,15 @@ export default class ApiService {
     return this.request('DELETE', `transactions/${id}/`);
   }
 
+  // Summary and Statistics API methods
+  async getSummary() {
+    return this.request('GET', 'transactions/summary/');
+  }
+
+  async getMonthlyStats() {
+    return this.request('GET', 'transactions/monthly_summary/');
+  }
+
   // Categories API methods
   async getCategories() {
     try {

@@ -33,7 +33,9 @@ export default class ApiService {
    * @returns {Promise} - Response from the API
    */
   async request(method, endpoint, data = null) {
-    const url = `${this.baseUrl}/${endpoint}`;
+    // Ensure endpoint doesn't start with a slash
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    const url = `${this.baseUrl}/${cleanEndpoint}`;
     
     const options = {
       method,
@@ -45,6 +47,7 @@ export default class ApiService {
     }
 
     try {
+      console.log(`Making ${method} request to: ${url}`);
       const response = await fetch(url, options);
       
       // Handle non-2xx responses

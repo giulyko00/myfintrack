@@ -181,12 +181,10 @@ onMounted(() => {
 
 // Funzioni di navigazione
 function goToProfile() {
-  router.push('/profile')
   isUserMenuOpen.value = false
 }
 
 function goToSettings() {
-  router.push('/settings')
   isUserMenuOpen.value = false
 }
 

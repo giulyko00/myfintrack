@@ -1,0 +1,19 @@
+[
+  {
+    "model": "users.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$320000$jg8ME3G0WTLfKkhE0uxDRk$7LWGlZQCnZt74SjDqvdshuBfzwcyzPpM8tqY80qN5Qc=",
+      "last_login": null,
+      "is_superuser": false,
+      "email": "demo@myfintrack.com",
+      "first_name": "Demo",
+      "last_name": "User",
+      "date_joined": "2025-05-01T12:00:00Z",
+      "is_active": true,
+      "is_staff": false,
+      "groups": [],
+      "user_permissions": []
+    }
+  }
+]

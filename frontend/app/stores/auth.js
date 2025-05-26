@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
+import ApiService from '~/services/api'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    token: null,
+    accessToken: null,
+    refreshToken: null,
     loading: false,
     error: null,
-    // Credenziali utente test
+    // Test user credentials
     testCredentials: {
       email: 'demo@myfintrack.com',
       password: 'Password123'
@@ -14,7 +16,7 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.token,
+    isAuthenticated: (state) => !!state.accessToken,
     getUser: (state) => state.user,
     getTestCredentials: (state) => state.testCredentials
   },
@@ -25,9 +27,6 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
 
       try {
-        // Simuliamo una breve attesa per dare l'impressione di una chiamata API
-        await new Promise(resolve => setTimeout(resolve, 800))
-
         // Email validation
         if (!email || !email.includes('@')) {
           throw new Error('Please enter a valid email address')
@@ -38,33 +37,42 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Password must be at least 8 characters long')
         }
         
-        // Verify credentials against test user
-        if (email !== this.testCredentials.email || password !== this.testCredentials.password) {
-          throw new Error('Invalid credentials. Please use the displayed test credentials.')
-        }
+        const apiService = new ApiService()
         
-        // Login avvenuto con successo
-        const userData = {
-          id: 1,
+        // Make real API call to authenticate
+        const response = await apiService.login({
           email,
-          name: 'Demo User',
-          created_at: new Date().toISOString()
-        }
+          password
+        })
         
-        const token = 'jwt-token-demo-' + Math.random().toString(36).substring(2)
+        console.log('Login response:', response)
         
-        // Salva nello state
-        this.user = userData
-        this.token = token
+        // Save tokens
+        this.accessToken = response.access
+        this.refreshToken = response.refresh
         
-        // Salva nel localStorage se remember è true
-        if (remember) {
-          localStorage.setItem('auth.token', token)
+        // Save to localStorage immediately to ensure auth headers are set for the next request
+        localStorage.setItem('auth.accessToken', this.accessToken)
+        localStorage.setItem('auth.refreshToken', this.refreshToken)
+        
+        try {
+          // Get user data
+          const userData = await apiService.getUserInfo()
+          this.user = userData
+          
+          // Save to localStorage
           localStorage.setItem('auth.user', JSON.stringify(userData))
+        } catch (userError) {
+          console.error('Error fetching user data:', userError)
+          // Continue login process even if user data fetch fails
+          // Create a minimal user object
+          this.user = { email }
+          localStorage.setItem('auth.user', JSON.stringify({ email }))
         }
         
-        return userData
+        return this.user
       } catch (error) {
+        console.error('Login error:', error)
         this.error = error.message || 'Authentication failed'
         throw error
       } finally {
@@ -73,30 +81,50 @@ export const useAuthStore = defineStore('auth', {
     },
     
     async logout() {
-      // For demo purposes
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
       // Clear state
       this.user = null
-      this.token = null
+      this.accessToken = null
+      this.refreshToken = null
       
       // Clear localStorage
-      localStorage.removeItem('auth.token')
+      localStorage.removeItem('auth.accessToken')
+      localStorage.removeItem('auth.refreshToken')
       localStorage.removeItem('auth.user')
     },
     
     async checkAuth() {
-      // Check if we have a token in localStorage
-      const token = localStorage.getItem('auth.token')
+      // Check if we have tokens in localStorage
+      const accessToken = localStorage.getItem('auth.accessToken')
+      const refreshToken = localStorage.getItem('auth.refreshToken')
       const user = localStorage.getItem('auth.user')
       
-      if (token && user) {
-        this.token = token
-        this.user = JSON.parse(user)
-        return true
+      if (!accessToken || !refreshToken) {
+        return false
       }
       
-      return false
+      try {
+        // Verify token validity
+        const apiService = new ApiService()
+        await apiService.verifyToken(accessToken)
+        
+        // Set state from localStorage
+        this.accessToken = accessToken
+        this.refreshToken = refreshToken
+        
+        if (user) {
+          this.user = JSON.parse(user)
+        } else {
+          // Fetch user data if we have valid tokens but no user data
+          const userData = await apiService.getUserInfo()
+          this.user = userData
+          localStorage.setItem('auth.user', JSON.stringify(userData))
+        }
+        
+        return true
+      } catch (error) {
+        // Token is invalid, try to refresh
+        return await this.refreshAuthToken()
+      }
     },
     
     async register(email, password, name) {
@@ -104,9 +132,6 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
         // Validation
         if (!email.includes('@')) {
           throw new Error('Invalid email format')
@@ -116,30 +141,52 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Password must be at least 8 characters')
         }
         
-        // Mock registration response
-        const userData = {
-          id: Math.floor(Math.random() * 1000),
+        const apiService = new ApiService()
+        
+        // Register user
+        await apiService.register({
           email,
-          name: name || email.split('@')[0],
-          created_at: new Date().toISOString()
-        }
+          password,
+          re_password: password,  // Django-Djoser requires password confirmation
+          name: name || email.split('@')[0]
+        })
         
-        const token = 'mock-jwt-token-' + Math.random().toString(36).substring(2)
-        
-        // Save to state
-        this.user = userData
-        this.token = token
-        
-        // Save to localStorage
-        localStorage.setItem('auth.token', token)
-        localStorage.setItem('auth.user', JSON.stringify(userData))
-        
-        return userData
+        // Login after registration
+        return await this.login(email, password, true)
       } catch (error) {
+        console.error('Registration error:', error)
         this.error = error.message || 'Registration failed'
         throw error
       } finally {
         this.loading = false
+      }
+    },
+    
+    async refreshAuthToken() {
+      if (!this.refreshToken) {
+        return false
+      }
+      
+      try {
+        const apiService = new ApiService()
+        const response = await apiService.refreshToken(this.refreshToken)
+        
+        // Update tokens
+        this.accessToken = response.access
+        localStorage.setItem('auth.accessToken', this.accessToken)
+        
+        // If the response includes a new refresh token
+        if (response.refresh) {
+          this.refreshToken = response.refresh
+          localStorage.setItem('auth.refreshToken', this.refreshToken)
+        }
+        
+        return true
+      } catch (error) {
+        console.error('Token refresh failed:', error)
+        // Clear auth state on refresh failure
+        this.logout()
+        return false
       }
     }
   }

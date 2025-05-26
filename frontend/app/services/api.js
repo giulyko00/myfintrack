@@ -13,11 +13,16 @@ export default class ApiService {
    * Get the authorization headers for API requests
    */
   getHeaders() {
-    const token = localStorage.getItem('auth.token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
+    const token = localStorage.getItem('auth.accessToken');
+    const headers = {
+      'Content-Type': 'application/json'
     };
+    
+    if (token) {
+      headers['Authorization'] = `JWT ${token}`;
+    }
+    
+    return headers;
   }
 
   /**
@@ -80,5 +85,32 @@ export default class ApiService {
   // Categories API methods
   async getCategories() {
     return this.request('GET', 'categories');
+  }
+
+  // Authentication API methods
+  async login(credentials) {
+    // Supportiamo sia email che username per l'autenticazione
+    const payload = {
+      username: credentials.email, // Djoser può richiedere username invece di email
+      email: credentials.email,    // Manteniamo anche email per sicurezza
+      password: credentials.password
+    };
+    return this.request('POST', 'auth/jwt/create/', payload);
+  }
+
+  async refreshToken(refresh) {
+    return this.request('POST', 'auth/jwt/refresh/', { refresh });
+  }
+
+  async verifyToken(token) {
+    return this.request('POST', 'auth/jwt/verify/', { token });
+  }
+
+  async register(userData) {
+    return this.request('POST', 'auth/users/', userData);
+  }
+
+  async getUserInfo() {
+    return this.request('GET', 'auth/users/me/');
   }
 }

@@ -938,7 +938,7 @@ const _inlineRuntimeConfig = {
     }
   },
   "public": {
-    "apiBaseUrl": "http://localhost:8000/api"
+    "apiBaseUrl": "http://localhost:8000/api/v1"
   },
   "icon": {
     "serverKnownCssClasses": []

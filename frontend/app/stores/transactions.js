@@ -143,7 +143,7 @@ export const useTransactionsStore = defineStore('transactions', {
       
       for (let i = 0; i < 6; i++) {
         const month = new Date(today.getFullYear(), today.getMonth() - i, 1)
-        const monthName = month.toLocaleString('default', { month: 'short' })
+        const monthName = month.toLocaleString('en-US', { month: 'short' })
         
         // Filter transactions for this month
         const monthlyTransactions = state.transactions.filter(t => {

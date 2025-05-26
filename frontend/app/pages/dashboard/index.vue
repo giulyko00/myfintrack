@@ -54,7 +54,7 @@
         <template #header>
           <div class="flex items-center justify-between">
             <h3 class="text-base font-semibold">Recent Transactions</h3>
-            <UButton size="sm" @click="isAddTransactionModalOpen = true">
+            <UButton size="sm" @click="openAddTransactionModal">
               Add Transaction
             </UButton>
           </div>
@@ -231,16 +231,26 @@
                 <!-- Category -->
                 <div>
                   <label class="block text-sm font-medium mb-1">Category <span class="text-red-500">*</span></label>
-                  <select 
-                    v-model="newTransaction.category"
-                    class="w-full py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    required
-                  >
-                    <option value="" disabled>Select category</option>
-                    <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
+                  <div class="relative">
+                    <select 
+                      v-model="newTransaction.category"
+                      class="w-full py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
+                      required
+                    >
+                      <option value="" disabled>Select category</option>
+                      <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
+                        {{ option.label }}
+                      </option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                      <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                      </svg>
+                    </div>
+                    <div v-if="!newTransaction.category" class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500 dark:text-gray-400">
+                      Select category
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Date -->
@@ -314,6 +324,28 @@ const authStore = useAuthStore()
 const router = useRouter()
 
 // Load transactions on component mount
+// Funzione per aggiornare tutti i dati della dashboard
+async function refreshDashboardData() {
+  showError.value = false
+  try {
+    // Load all required data in parallel
+    await Promise.all([
+      transactionsStore.fetchTransactions(),
+      transactionsStore.fetchCategories(),
+      transactionsStore.fetchSummary(),
+      transactionsStore.fetchMonthlyStats()
+    ])
+    
+    console.log('Dashboard data refreshed successfully')
+    return true
+  } catch (error) {
+    console.error('Error refreshing dashboard data:', error)
+    showError.value = true
+    errorMessage.value = 'Failed to update dashboard data. Please try again later.'
+    return false
+  }
+}
+
 onMounted(async () => {
   // Check authentication
   if (!authStore.isAuthenticated) {
@@ -326,29 +358,8 @@ onMounted(async () => {
   
   // Fetch data
   isLoading.value = true
-  showError.value = false
-  try {
-    // Load all required data in parallel
-    await Promise.all([
-      transactionsStore.fetchTransactions(),
-      transactionsStore.fetchCategories(),
-      transactionsStore.fetchSummary(),
-      transactionsStore.fetchMonthlyStats()
-    ])
-    
-    // Check if we have transactions
-    if (transactionsStore.getAllTransactions.length === 0) {
-      console.log('No transactions found. Dashboard will show empty state.')
-    } else {
-      console.log(`Loaded ${transactionsStore.getAllTransactions.length} transactions successfully.`)
-    }
-  } catch (error) {
-    console.error('Error loading dashboard data:', error)
-    showError.value = true
-    errorMessage.value = 'Failed to load dashboard data. Please try again later.'
-  } finally {
-    isLoading.value = false
-  }
+  await refreshDashboardData()
+  isLoading.value = false
 })
 
 // Get transactions from the store with loading state
@@ -363,7 +374,7 @@ const monthlyIncome = computed(() => transactionsStore.getMonthlyIncome)
 const monthlyExpenses = computed(() => transactionsStore.getMonthlyExpenses)
 
 const currentMonthName = computed(() => {
-  return new Date().toLocaleString('default', { month: 'long' })
+  return new Date().toLocaleString('en-US', { month: 'long' })
 })
 
 // Chart data for monthly overview
@@ -511,9 +522,8 @@ async function saveTransaction() {
       await transactionsStore.addTransaction(transactionData)
     }
     
-    // Refresh transactions to see the changes
-    await transactionsStore.fetchTransactions()
-    await transactionsStore.fetchSummary() // Also refresh summary data
+    // Refresh all dashboard data after saving a transaction
+    await refreshDashboardData()
     
     // Reset form
     resetTransactionForm()
@@ -584,11 +594,26 @@ function editTransaction(transaction) {
   isAddTransactionModalOpen.value = true;
 }
 
+function openAddTransactionModal() {
+  // Assicurati che i campi del form siano reimpostati a valori predefiniti
+  resetTransactionForm();
+  
+  // Assicurati che isEditing sia impostato a false per indicare che stiamo aggiungendo una nuova transazione
+  isEditing.value = false;
+  
+  // Apri il modale
+  isAddTransactionModalOpen.value = true;
+}
+
 async function deleteTransaction(id) {
   if (confirm('Are you sure you want to delete this transaction?')) {
     isLoading.value = true
     try {
       await transactionsStore.deleteTransaction(id)
+      
+      // Refresh all dashboard data after deleting a transaction
+      await refreshDashboardData()
+      
       toast.add({
         title: 'Transaction Deleted',
         description: 'The transaction has been removed successfully',

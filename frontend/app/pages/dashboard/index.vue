@@ -64,11 +64,11 @@
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead>
               <tr>
-                <th class="py-3 px-4 font-medium">Date</th>
-                <th class="py-3 px-4 font-medium">Category</th>
-                <th class="py-3 px-4 font-medium">Description</th>
+                <th class="py-3 px-4 font-medium text-left">Date</th>
+                <th class="py-3 px-4 font-medium text-left">Category</th>
+                <th class="py-3 px-4 font-medium text-left">Description</th>
                 <th class="py-3 px-4 font-medium text-right">Amount</th>
-                <th class="py-3 px-4 font-medium">Actions</th>
+                <th class="py-3 px-4 font-medium text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -80,7 +80,9 @@
                     :label="transaction.category || 'Unknown'"
                   />
                 </td>
-                <td class="py-3 px-4">{{ transaction.description || '-' }}</td>
+                <td class="py-3 px-4" :title="transaction.description || '-'">
+                  <span class="block truncate max-w-[400px]">{{ transaction.description || '-' }}</span>
+                </td>
                 <td class="py-3 px-4 text-right" :class="transaction.type === 'income' ? 'text-emerald-500' : 'text-red-500'">
                   {{ transaction.type === 'income' ? '+' : '-' }}${{ formatCurrency(Math.abs(transaction.amount)) }}
                 </td>

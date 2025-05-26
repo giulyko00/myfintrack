@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Q
 from django.utils import timezone
@@ -103,3 +104,64 @@ class TransactionViewSet(viewsets.ModelViewSet):
             })
         
         return Response(monthly_summaries)
+
+    @action(detail=False, methods=['get'])
+    def categories(self, request):
+        """Get all available transaction categories divided by type."""
+        # Get all category choices from the model
+        income_categories = []
+        expense_categories = []
+        
+        for choice in Transaction.Category.choices:
+            category_code = choice[0]
+            category_name = choice[1]
+            
+            # Check if this is an income or expense category based on naming convention
+            # This assumes income categories have specific identifiers like SALARY, FREELANCE, etc.
+            if category_code in ['SALARY', 'FREELANCE', 'INVESTMENT', 'GIFT', 'OTHER_INC']:
+                income_categories.append({
+                    'value': category_code,
+                    'label': category_name
+                })
+            else:
+                expense_categories.append({
+                    'value': category_code,
+                    'label': category_name
+                })
+        
+        return Response({
+            'income': income_categories,
+            'expense': expense_categories
+        })
+
+
+class CategoryAPIView(APIView):
+    """API view to get all available categories."""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get all available transaction categories divided by type."""
+        # Get all category choices from the model
+        income_categories = []
+        expense_categories = []
+        
+        for choice in Transaction.Category.choices:
+            category_code = choice[0]
+            category_name = choice[1]
+            
+            # Check if this is an income or expense category based on naming convention
+            if category_code in ['SALARY', 'FREELANCE', 'INVESTMENT', 'GIFT', 'OTHER_INC']:
+                income_categories.append({
+                    'value': category_code,
+                    'label': category_name
+                })
+            else:
+                expense_categories.append({
+                    'value': category_code,
+                    'label': category_name
+                })
+        
+        return Response({
+            'income': income_categories,
+            'expense': expense_categories
+        })

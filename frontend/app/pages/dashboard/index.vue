@@ -145,12 +145,31 @@
       </div>
     </div>
 
-      <!-- Add Transaction Modal -->
+      <!-- Loading Overlay -->
+      <div v-if="isLoading" class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/70 flex items-center justify-center z-50">
+        <UCard class="max-w-sm">
+          <div class="flex items-center space-x-4 p-4">
+            <UIcon name="i-heroicons-arrow-path" class="text-primary-500 animate-spin h-6 w-6" />
+            <p>Loading dashboard data...</p>
+          </div>
+        </UCard>
+      </div>
+      
+      <!-- Error Alert -->
+      <UAlert v-if="showError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" class="mb-4">
+        <template #title>Error Loading Data</template>
+        <template #description>
+          {{ errorMessage }}
+          <UButton class="mt-2" size="sm" @click="() => window.location.reload()">Retry</UButton>
+        </template>
+      </UAlert>
+      
+      <!-- Add/Edit Transaction Modal -->
       <UModal v-model="isAddTransactionModalOpen" :ui="{ width: 'sm:max-w-md' }">
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-base font-semibold">Add New Transaction</h3>
+              <h3 class="text-base font-semibold">{{ isEditing ? 'Edit Transaction' : 'Add New Transaction' }}</h3>
               <UButton
                 color="gray"
                 variant="ghost"
@@ -177,6 +196,11 @@
               </UFormGroup>
             </div>
             
+            <!-- Form Error Alert -->
+            <UAlert v-if="showFormError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" class="mb-4">
+              {{ formErrorMessage }}
+            </UAlert>
+
             <!-- All form fields in one row -->
             <div class="flex flex-wrap items-end space-x-2 mb-4">
               <!-- Amount -->
@@ -241,8 +265,9 @@
               <UButton
                 type="submit"
                 color="primary"
-                label="Save Transaction"
+                :label="isEditing ? 'Update Transaction' : 'Save Transaction'"
                 :loading="isSaving"
+                :disabled="isSaving"
               />
             </div>
           </form>
@@ -279,11 +304,27 @@ onMounted(async () => {
     }
   }
   
-  // Fetch transactions
-  await transactionsStore.fetchTransactions()
+  // Fetch data
+  isLoading.value = true
+  try {
+    // Load transactions and categories in parallel
+    await Promise.all([
+      transactionsStore.fetchTransactions(),
+      transactionsStore.fetchCategories()
+    ])
+  } catch (error) {
+    console.error('Error loading dashboard data:', error)
+    showError.value = true
+    errorMessage.value = 'Failed to load dashboard data. Please try again later.'
+  } finally {
+    isLoading.value = false
+  }
 })
 
-// Get transactions from the store
+// Get transactions from the store with loading state
+const isLoading = ref(false)
+const showError = ref(false)
+const errorMessage = ref('')
 const transactions = computed(() => transactionsStore.getAllTransactions)
 
 // Summary data from the store
@@ -339,6 +380,9 @@ const categoryChartData = computed(() => {
 // Transaction form
 const isAddTransactionModalOpen = ref(false)
 const isSaving = ref(false)
+const showFormError = ref(false)
+const formErrorMessage = ref('')
+const isEditing = ref(false)
 const newTransaction = ref({
   type: 'expense',
   amount: null,
@@ -346,6 +390,9 @@ const newTransaction = ref({
   date: new Date(),
   description: ''
 })
+
+// Toast notifications
+const toast = useToast()
 
 // Category options from the store
 const categoryOptions = computed(() => {
@@ -367,32 +414,66 @@ function toggleColorMode() {
 }
 
 async function saveTransaction() {
+  // Validate form
+  if (!newTransaction.value.amount || !newTransaction.value.category) {
+    showFormError.value = true
+    formErrorMessage.value = 'Please fill in all required fields'
+    return
+  }
+  
   isSaving.value = true
+  showFormError.value = false
   
   try {
-    await transactionsStore.addTransaction({
-      ...newTransaction.value,
-      // Convert amount to number if it's a string
-      amount: typeof newTransaction.value.amount === 'string' 
-        ? parseFloat(newTransaction.value.amount) 
-        : newTransaction.value.amount
-    })
-    
-    // Reset form
-    newTransaction.value = {
-      type: 'expense',
-      amount: null,
-      category: null,
-      date: new Date(),
-      description: ''
+    // Check if we're editing or creating a new transaction
+    if (newTransaction.value.id) {
+      // Editing existing transaction
+      await transactionsStore.updateTransaction(newTransaction.value.id, {
+        ...newTransaction.value,
+        // Convert amount to number if it's a string
+        amount: typeof newTransaction.value.amount === 'string' 
+          ? parseFloat(newTransaction.value.amount) 
+          : newTransaction.value.amount
+      })
+    } else {
+      // Adding new transaction
+      await transactionsStore.addTransaction({
+        ...newTransaction.value,
+        // Convert amount to number if it's a string
+        amount: typeof newTransaction.value.amount === 'string' 
+          ? parseFloat(newTransaction.value.amount) 
+          : newTransaction.value.amount
+      })
     }
     
+    // Reset form
+    resetTransactionForm()
     isAddTransactionModalOpen.value = false
+    
+    // Show success notification
+    toast.add({
+      title: newTransaction.value.id ? 'Transaction Updated' : 'Transaction Added',
+      description: 'Your transaction has been saved successfully',
+      color: 'green'
+    })
   } catch (error) {
     console.error('Failed to save transaction:', error)
+    showFormError.value = true
+    formErrorMessage.value = error.message || 'Failed to save transaction'
   } finally {
     isSaving.value = false
   }
+}
+
+function resetTransactionForm() {
+  newTransaction.value = {
+    type: 'expense',
+    amount: null,
+    category: null,
+    date: new Date(),
+    description: ''
+  }
+  showFormError.value = false
 }
 
 function editTransaction(transaction) {
@@ -403,15 +484,29 @@ function editTransaction(transaction) {
     date: transaction.date instanceof Date ? transaction.date : new Date(transaction.date)
   }
   
+  isEditing.value = true
   isAddTransactionModalOpen.value = true
 }
 
 async function deleteTransaction(id) {
   if (confirm('Are you sure you want to delete this transaction?')) {
+    isLoading.value = true
     try {
       await transactionsStore.deleteTransaction(id)
+      toast.add({
+        title: 'Transaction Deleted',
+        description: 'The transaction has been removed successfully',
+        color: 'green'
+      })
     } catch (error) {
       console.error('Failed to delete transaction:', error)
+      toast.add({
+        title: 'Error',
+        description: error.message || 'Failed to delete transaction',
+        color: 'red'
+      })
+    } finally {
+      isLoading.value = false
     }
   }
 }

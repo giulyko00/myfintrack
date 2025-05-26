@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useApi } from '~/composables/useApi'
 
 export const useTransactionsStore = defineStore('transactions', {
   state: () => ({
@@ -162,84 +163,97 @@ export const useTransactionsStore = defineStore('transactions', {
       this.error = null
       
       try {
-        // In a real app, this would be an API call to your Django backend
-        // For demo, we'll use mock data
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        const api = useApi()
+        const response = await api.getTransactions()
         
-        // Mock data for transactions
-        const mockTransactions = [
-          {
-            id: 1,
-            date: new Date('2025-05-22'),
-            category: 'Salary',
-            description: 'Monthly salary',
-            amount: 2500,
-            type: 'income'
-          },
-          {
-            id: 2,
-            date: new Date('2025-05-20'),
-            category: 'Food',
-            description: 'Grocery shopping',
-            amount: 85.50,
-            type: 'expense'
-          },
-          {
-            id: 3,
-            date: new Date('2025-05-18'),
-            category: 'Transport',
-            description: 'Fuel',
-            amount: 45.00,
-            type: 'expense'
-          },
-          {
-            id: 4,
-            date: new Date('2025-05-15'),
-            category: 'Utilities',
-            description: 'Electricity bill',
-            amount: 75.20,
-            type: 'expense'
-          },
-          {
-            id: 5,
-            date: new Date('2025-05-10'),
-            category: 'Freelance',
-            description: 'Web development project',
-            amount: 600,
-            type: 'income'
-          },
-          {
-            id: 6,
-            date: new Date('2025-04-25'),
-            category: 'Salary',
-            description: 'Monthly salary',
-            amount: 2500,
-            type: 'income'
-          },
-          {
-            id: 7,
-            date: new Date('2025-04-18'),
-            category: 'Entertainment',
-            description: 'Movie tickets',
-            amount: 30.00,
-            type: 'expense'
-          },
-          {
-            id: 8,
-            date: new Date('2025-04-15'),
-            category: 'Housing',
-            description: 'Rent payment',
-            amount: 800.00,
-            type: 'expense'
-          }
-        ]
+        // Process the transactions to ensure dates are Date objects
+        const transactions = Array.isArray(response) ? response : []
+        this.transactions = transactions.map(transaction => ({
+          ...transaction,
+          date: transaction.date ? new Date(transaction.date) : new Date(),
+          // Ensure amount is a number
+          amount: parseFloat(transaction.amount)
+        }))
+
+        // Sort transactions by date (newest first)
+        this.transactions.sort((a, b) => b.date - a.date)
         
-        this.transactions = mockTransactions
+        // If API is not available yet, fall back to mock data
+        if (this.transactions.length === 0) {
+          // Default mock data for development
+          this.transactions = [
+            {
+              id: 1,
+              date: new Date('2025-05-22'),
+              category: 'Salary',
+              description: 'Monthly salary',
+              amount: 2500,
+              type: 'income'
+            },
+            {
+              id: 2,
+              date: new Date('2025-05-20'),
+              category: 'Food',
+              description: 'Grocery shopping',
+              amount: 85.50,
+              type: 'expense'
+            },
+            {
+              id: 3,
+              date: new Date('2025-05-18'),
+              category: 'Transport',
+              description: 'Fuel',
+              amount: 45.00,
+              type: 'expense'
+            },
+            {
+              id: 4,
+              date: new Date('2025-05-15'),
+              category: 'Utilities',
+              description: 'Electricity bill',
+              amount: 75.20,
+              type: 'expense'
+            },
+            {
+              id: 5,
+              date: new Date('2025-05-10'),
+              category: 'Freelance',
+              description: 'Web development project',
+              amount: 600,
+              type: 'income'
+            },
+            {
+              id: 6,
+              date: new Date('2025-04-25'),
+              category: 'Salary',
+              description: 'Monthly salary',
+              amount: 2500,
+              type: 'income'
+            }
+          ]
+        }
       } catch (error) {
         this.error = error.message || 'Failed to fetch transactions'
         console.error('Error fetching transactions:', error)
+        
+        // Fallback to empty array on error
+        this.transactions = []
       } finally {
         this.loading = false
+      }
+    },
+    
+    async fetchCategories() {
+      try {
+        const api = useApi()
+        const response = await api.getCategories()
+        
+        if (response && response.income && response.expense) {
+          this.categories = response
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+        // Categories are already defined in state, so no need for fallback
       }
     },
     
@@ -248,18 +262,25 @@ export const useTransactionsStore = defineStore('transactions', {
       this.error = null
       
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800))
+        const api = useApi()
         
-        // Generate a unique ID (in a real app, the backend would do this)
-        const id = Math.max(0, ...this.transactions.map(t => t.id)) + 1
-        
-        // Create the new transaction
-        const newTransaction = {
-          id,
+        // Format the transaction for the API
+        const formattedTransaction = {
           ...transaction,
+          // Format date as ISO string if it's a Date object
+          date: transaction.date instanceof Date ? transaction.date.toISOString() : transaction.date
+        }
+        
+        // Send to API
+        const response = await api.addTransaction(formattedTransaction)
+        
+        // Process the returned transaction
+        const newTransaction = {
+          ...response,
           // Ensure date is a Date object
-          date: transaction.date instanceof Date ? transaction.date : new Date(transaction.date)
+          date: response.date ? new Date(response.date) : new Date(),
+          // Ensure amount is a number
+          amount: parseFloat(response.amount)
         }
         
         // Add to state
@@ -279,24 +300,35 @@ export const useTransactionsStore = defineStore('transactions', {
       this.error = null
       
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800))
+        const api = useApi()
         
-        // Find the transaction
+        // Format the updates for the API
+        const formattedUpdates = {
+          ...updates,
+          // Format date as ISO string if it's a Date object
+          date: updates.date instanceof Date ? updates.date.toISOString() : updates.date
+        }
+        
+        // Send to API
+        const response = await api.updateTransaction(id, formattedUpdates)
+        
+        // Find the transaction in the state
         const index = this.transactions.findIndex(t => t.id === id)
         
         if (index === -1) {
-          throw new Error('Transaction not found')
+          // If not found in state, fetch all transactions
+          await this.fetchTransactions()
+          return response
         }
         
-        // Update the transaction
+        // Update the transaction in state
         this.transactions[index] = {
           ...this.transactions[index],
-          ...updates,
-          // Ensure date is a Date object if it was updated
-          date: updates.date ? 
-                (updates.date instanceof Date ? updates.date : new Date(updates.date)) :
-                this.transactions[index].date
+          ...response,
+          // Ensure date is a Date object
+          date: response.date ? new Date(response.date) : this.transactions[index].date,
+          // Ensure amount is a number
+          amount: parseFloat(response.amount)
         }
         
         return this.transactions[index]
@@ -313,20 +345,20 @@ export const useTransactionsStore = defineStore('transactions', {
       this.error = null
       
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800))
+        const api = useApi()
         
-        // Find the transaction
+        // Send delete request to API
+        const response = await api.deleteTransaction(id)
+        
+        // Find the transaction in state
         const index = this.transactions.findIndex(t => t.id === id)
         
-        if (index === -1) {
-          throw new Error('Transaction not found')
+        if (index !== -1) {
+          // Remove from state
+          this.transactions.splice(index, 1)
         }
         
-        // Remove from state
-        this.transactions.splice(index, 1)
-        
-        return { success: true }
+        return response
       } catch (error) {
         this.error = error.message || 'Failed to delete transaction'
         throw error

@@ -52,7 +52,7 @@
                   size="sm"
                 />
               </template>
-              <span class="text-sm">{{ userName }}</span>
+              <span class="text-sm">{{ userName[0].toUpperCase() + userName.slice(1) }}</span>
             </UButton>
             
             <!-- Menu dropdown custom implementation -->

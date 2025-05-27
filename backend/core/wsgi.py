@@ -17,10 +17,10 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 # Initialize application
 application = get_wsgi_application()
 
-# Check if we're running in the main thread
-if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
-    # We're in production with gunicorn
-    print("Detected gunicorn environment. Running migrations...")
+# Check if we're in production (on Render)
+# Using a more reliable condition - check if DATABASE_URL is set, which is always true on Render
+if os.environ.get('DATABASE_URL'):
+    print("Detected production environment. Running migrations...")
     try:
         # Try to import directly from Django to avoid subprocess
         import django

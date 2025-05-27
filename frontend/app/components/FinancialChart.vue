@@ -10,24 +10,35 @@
               :options="chartTypeOptions"
               size="sm"
               :ui="{ width: 'w-32' }"
+              @update:model-value="updateChartType"
             />
           </div>
         </div>
       </template>
       
-      <div class="h-60">
-        <canvas :id="chartId" ref="chartRef"></canvas>
+      <!-- Use key to force re-render when data changes -->
+      <div class="h-60" :key="componentKey">
+        <canvas :id="chartId" ref="chartCanvas"></canvas>
       </div>
     </UCard>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, onBeforeUnmount, onUpdated } from 'vue'
+import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 
-// Genera un ID univoco per questo componente grafico
-const chartId = `chart-${Math.random().toString(36).substring(2, 9)}`
+// Generate unique ID for this chart instance
+const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 10000)}`
+
+// Reference to the canvas element
+const chartCanvas = ref(null)
+
+// Component key for forcing re-renders
+const componentKey = ref(0)
+
+// Chart instance
+let chartInstance = null
 
 const props = defineProps({
   title: {
@@ -52,8 +63,7 @@ const props = defineProps({
   }
 })
 
-const chartRef = ref(null)
-const chartInstance = ref(null)
+// Chart type
 const chartType = ref('bar')
 
 const chartTypeOptions = [
@@ -127,57 +137,89 @@ const chartConfig = computed(() => {
   }
 })
 
-// Initialize chart
+// Initialize the chart
 function initChart() {
-  try {
-    // Sempre distruggere l'istanza precedente se esiste
-    if (chartInstance.value) {
-      chartInstance.value.destroy();
-      chartInstance.value = null;
+  // Safety check - destroy any existing chart
+  if (chartInstance) {
+    try {
+      chartInstance.destroy();
+    } catch (e) {
+      console.warn('Error destroying chart:', e);
+    }
+    chartInstance = null;
+  }
+  
+  // Wait for the next tick to ensure the canvas is in the DOM
+  nextTick(() => {
+    // Check if we have a canvas reference
+    if (!chartCanvas.value) {
+      console.warn('Canvas reference not available');
+      return;
     }
     
-    // Attendere il prossimo ciclo di rendering
-    setTimeout(() => {
-      // Verificare nuovamente che il canvas esista e sia pronto
-      const canvas = document.getElementById(chartId);
-      if (canvas) {
-        // Utilizziamo l'ID univoco invece del riferimento ref
-        chartInstance.value = new Chart(canvas, chartConfig.value);
-      }
-    }, 50);
-  } catch (error) {
-    console.error('Errore durante l\'inizializzazione del grafico:', error);
-  }
+    try {
+      // Create the chart
+      chartInstance = new Chart(chartCanvas.value, chartConfig.value);
+    } catch (error) {
+      console.error('Error creating chart:', error);
+    }
+  });
 }
 
-// Watchers con migliore gestione degli errori
+// Force component re-render by incrementing the key
+function forceRerender() {
+  // First destroy any existing chart
+  if (chartInstance) {
+    try {
+      chartInstance.destroy();
+    } catch (e) {
+      console.warn('Error destroying chart:', e);
+    }
+    chartInstance = null;
+  }
+  
+  // Increment the key to force re-render
+  componentKey.value++;
+}
+
+// Update chart type
+function updateChartType() {
+  forceRerender();
+}
+
+// Watch for data changes
 watch(() => props.data, (newValue) => {
   if (newValue && newValue.length > 0) {
-    initChart();
+    forceRerender();
   }
 }, { deep: true });
 
-watch(chartType, () => {
+// Watch for datasets changes
+watch(() => props.datasets, () => {
+  forceRerender();
+}, { deep: true });
+
+// Initialize chart when component is mounted
+onMounted(() => {
   initChart();
 });
 
-// Gestione completa del ciclo di vita
-onMounted(() => {
-  // Ritardiamo l'inizializzazione per assicurarci che il DOM sia pronto
-  setTimeout(() => {
-    initChart();
-  }, 100);
+// Clean up when component is unmounted
+onBeforeUnmount(() => {
+  if (chartInstance) {
+    try {
+      chartInstance.destroy();
+    } catch (e) {
+      console.warn('Error destroying chart:', e);
+    }
+    chartInstance = null;
+  }
 });
 
-// Pulizia quando il componente viene smontato
-onBeforeUnmount(() => {
-  if (chartInstance.value) {
-    try {
-      chartInstance.value.destroy();
-      chartInstance.value = null;
-    } catch (error) {
-      console.warn('Errore durante la pulizia del grafico:', error);
-    }
-  }
+// Re-initialize chart after component updates
+watch(componentKey, () => {
+  nextTick(() => {
+    initChart();
+  });
 });
 </script>

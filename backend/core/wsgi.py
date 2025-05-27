@@ -8,9 +8,46 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 
 import os
-
+import sys
+import subprocess
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
+# Initialize application
 application = get_wsgi_application()
+
+# Check if we're running in the main thread
+if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
+    # We're in production with gunicorn
+    print("Detected gunicorn environment. Running migrations...")
+    try:
+        # Try to import directly from Django to avoid subprocess
+        import django
+        from django.core.management import call_command
+        from django.db import connections
+        
+        # Try to connect to the database
+        for _ in range(30):  # try for about 1 minute
+            try:
+                # Check if database is ready
+                conn = connections['default'].cursor()
+                conn.close()
+                
+                # Run migrations
+                print("Applying migrations...")
+                call_command('migrate', interactive=False)
+                
+                # Collect static
+                print("Collecting static files...")
+                call_command('collectstatic', interactive=False)
+                
+                print("Startup tasks completed successfully!")
+                break
+            except Exception as e:
+                print(f"Database not ready yet: {e}")
+                import time
+                time.sleep(2)
+    except Exception as e:
+        print(f"Error during startup tasks: {e}")
+        # Not blocking application startup even if migrations fail

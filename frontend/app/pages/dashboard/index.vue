@@ -1,5 +1,5 @@
 <template>
-  <NuxtLayout name="default">
+  <NuxtLayout>
     <div class="container py-8">
       <!-- Loading indicator -->
       <div v-if="transactionsStore.loading" class="flex justify-center py-8">

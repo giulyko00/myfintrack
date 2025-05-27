@@ -15,14 +15,12 @@
             Dashboard
           </NuxtLink>
           <NuxtLink 
-            to="/journal" 
             class="text-sm font-medium hover:text-primary-600 dark:hover:text-primary-400"
             active-class="text-primary-600 dark:text-primary-400"
           >
             Trading Journal
           </NuxtLink>
           <NuxtLink 
-            to="/reports" 
             class="text-sm font-medium hover:text-primary-600 dark:hover:text-primary-400"
             active-class="text-primary-600 dark:text-primary-400"
           >

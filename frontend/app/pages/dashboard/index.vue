@@ -136,6 +136,7 @@
             :data="transactionsStore.getMonthlyStats"
             :labels="chartData.labels"
             :datasets="chartData.datasets"
+            @update:timeRange="updateMonthlyChartTimeRange"
           />
           
           <!-- Expense Categories Chart -->
@@ -145,6 +146,7 @@
             :labels="categoryChartData.labels"
             :datasets="categoryChartData.datasets"
             :colors="['#EF4444', '#F97316', '#FBBF24', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280']"
+            @update:timeRange="updateCategoryChartTimeRange"
           />
         </div>
       </div>
@@ -326,23 +328,31 @@ const router = useRouter()
 // Load transactions on component mount
 // Funzione per aggiornare tutti i dati della dashboard
 async function refreshDashboardData() {
+  isLoading.value = true
   showError.value = false
+  
   try {
-    // Load all required data in parallel
+    // Load all data in parallel
     await Promise.all([
       transactionsStore.fetchTransactions(),
       transactionsStore.fetchCategories(),
       transactionsStore.fetchSummary(),
-      transactionsStore.fetchMonthlyStats()
+      transactionsStore.fetchMonthlyStats(monthlyChartTimeRange.value),
+      transactionsStore.fetchCategoryStats(categoryChartTimeRange.value)
     ])
     
-    console.log('Dashboard data refreshed successfully')
-    return true
+    // Update local refs
+    transactions.value = transactionsStore.getAllTransactions
+    totalBalance.value = transactionsStore.getTotalBalance
+    monthlyIncome.value = transactionsStore.getMonthlyIncome
+    monthlyExpenses.value = transactionsStore.getMonthlyExpenses
+    
+    isLoading.value = false
   } catch (error) {
-    console.error('Error refreshing dashboard data:', error)
+    console.error('Error fetching dashboard data:', error)
+    errorMessage.value = 'Failed to load dashboard data. Please try again.'
     showError.value = true
-    errorMessage.value = 'Failed to update dashboard data. Please try again later.'
-    return false
+    isLoading.value = false
   }
 }
 
@@ -362,11 +372,20 @@ onMounted(async () => {
   isLoading.value = false
 })
 
-// Get transactions from the store with loading state
+// State for dashboard
+const transactions = ref([])
 const isLoading = ref(false)
 const showError = ref(false)
 const errorMessage = ref('')
-const transactions = computed(() => transactionsStore.getAllTransactions)
+
+// Chart time ranges
+const monthlyChartTimeRange = ref('6months')
+const categoryChartTimeRange = ref('6months')
+
+// Transaction form state
+const isAddTransactionModalOpen = ref(false)
+const isEditing = ref(false)
+const isSaving = ref(false)
 
 // Summary data from the store
 const totalBalance = computed(() => transactionsStore.getTotalBalance)
@@ -380,50 +399,83 @@ const currentMonthName = computed(() => {
 // Chart data for monthly overview
 const chartData = computed(() => {
   const monthlyStats = transactionsStore.getMonthlyStats
+  
   return {
-    labels: monthlyStats.map(stat => stat.month),
+    labels: monthlyStats.map(item => item.month),
     datasets: [
       {
         label: 'Income',
-        data: monthlyStats.map(stat => stat.income),
-        type: 'bar'
+        data: monthlyStats.map(item => item.income),
+        borderColor: '#10B981',
+        backgroundColor: '#10B981',
       },
       {
         label: 'Expenses',
-        data: monthlyStats.map(stat => stat.expense),
-        type: 'bar'
-      },
-      {
-        label: 'Balance',
-        data: monthlyStats.map(stat => stat.balance),
-        type: 'line',
-        yAxisID: 'y'
+        data: monthlyStats.map(item => item.expense),
+        borderColor: '#EF4444',
+        backgroundColor: '#EF4444',
       }
     ]
   }
 })
 
-// Chart data for expense categories
+// Chart data for category expenses
 const categoryChartData = computed(() => {
   const categoryStats = transactionsStore.getCategoryStats
+  
   return {
-    labels: categoryStats.map(stat => stat.category),
+    labels: categoryStats.map(item => item.category),
     datasets: [
       {
-        label: 'Amount',
-        data: categoryStats.map(stat => stat.amount),
-        type: 'bar'
+        label: 'Expenses by Category',
+        data: categoryStats.map(item => item.amount),
       }
     ]
   }
 })
 
-// Transaction form
-const isAddTransactionModalOpen = ref(false)
-const isSaving = ref(false)
+// Functions to update chart time ranges
+async function updateMonthlyChartTimeRange(range) {
+  console.log('Updating monthly chart time range to:', range)
+  monthlyChartTimeRange.value = range
+  
+  // Show loading indicator
+  isLoading.value = true
+  
+  try {
+    // Fetch data with new time range
+    await transactionsStore.fetchMonthlyStats(range)
+    console.log('Monthly chart data updated successfully')
+  } catch (error) {
+    console.error('Error updating monthly chart data:', error)
+    showError.value = true
+    errorMessage.value = 'Failed to update chart data. Please try again.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function updateCategoryChartTimeRange(range) {
+  console.log('Updating category chart time range to:', range)
+  categoryChartTimeRange.value = range
+  
+  // Show loading indicator
+  isLoading.value = true
+  
+  try {
+    // Fetch data with new time range
+    await transactionsStore.fetchCategoryStats(range)
+    console.log('Category chart data updated successfully')
+  } catch (error) {
+    console.error('Error updating category chart data:', error)
+    showError.value = true
+    errorMessage.value = 'Failed to update chart data. Please try again.'
+  } finally {
+    isLoading.value = false
+  }
+}
 const showFormError = ref(false)
 const formErrorMessage = ref('')
-const isEditing = ref(false)
 const newTransaction = ref({
   type: 'expense',
   amount: null,

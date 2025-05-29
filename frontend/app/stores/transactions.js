@@ -287,42 +287,73 @@ export const useTransactionsStore = defineStore('transactions', {
       }
     },
     
-    async fetchMonthlyStats() {
+    async fetchMonthlyStats(timeRange = '6months') {
       try {
         const api = useApi()
-        const response = await api.getMonthlyStats()
+        
+        // Get current date for calculations
+        const currentDate = new Date()
+        const currentMonth = currentDate.getMonth() + 1 // JavaScript months are 0-11, API data is 1-12
+        const currentYear = currentDate.getFullYear()
+        
+        // Calculate start date based on time range
+        let monthsToInclude = 6
+        let startDate = null
+        
+        switch(timeRange) {
+          case '3months':
+            monthsToInclude = 3
+            break
+          case '6months':
+            monthsToInclude = 6
+            break
+          case '1year':
+            monthsToInclude = 12
+            break
+          case 'all':
+            monthsToInclude = null // No limit
+            break
+          default:
+            monthsToInclude = 6
+        }
+        
+        // Get data from API with time range parameter
+        const response = await api.getMonthlyStats(timeRange)
         
         if (Array.isArray(response)) {
-          console.log('Dati mensili ricevuti dal backend:', response)
+          console.log('Monthly data received from backend:', response)
           
-          // Ottieni il mese e l'anno correnti
-          const currentDate = new Date()
-          const currentMonth = currentDate.getMonth() + 1 // JavaScript mesi sono 0-11, i dati API sono 1-12
-          const currentYear = currentDate.getFullYear()
+          // Filter months based on selected time range
+          let relevantMonths = response
           
-          // Filtra per ottenere solo gli ultimi 6 mesi fino al mese corrente
-          const relevantMonths = response.filter(item => {
-            // Calcola se questo mese è uno degli ultimi 6 mesi
-            if (item.year < currentYear) return false // Escludi anni precedenti
-            
-            if (item.year === currentYear) {
-              return item.month <= currentMonth && item.month > currentMonth - 6
-            }
-            
-            return false
-          })
+          if (monthsToInclude !== null) {
+            relevantMonths = response.filter(item => {
+              // Calculate if this month is within the selected time range
+              // For months in current year
+              if (item.year === currentYear) {
+                return item.month <= currentMonth && item.month > currentMonth - monthsToInclude
+              }
+              
+              // For months in previous year (if timeRange spans across years)
+              if (monthsToInclude > currentMonth && item.year === currentYear - 1) {
+                return item.month > 12 - (monthsToInclude - currentMonth)
+              }
+              
+              return false
+            })
+          }
           
-          // Ordina i mesi cronologicamente
+          // Sort months chronologically
           relevantMonths.sort((a, b) => {
             if (a.year !== b.year) return a.year - b.year
             return a.month - b.month
           })
           
-          console.log('Mesi rilevanti selezionati e ordinati:', relevantMonths)
+          console.log('Relevant months selected and sorted:', relevantMonths)
           
-          // Converti i dati nel formato richiesto dal grafico
+          // Convert data to the format required by the chart
           this.monthlyStats = relevantMonths.map(item => {
-            // Converti il numero del mese in nome abbreviato
+            // Convert month number to abbreviated name
             const monthName = new Date(item.year, item.month - 1, 1).toLocaleString('en-US', { month: 'short' })
             
             return {
@@ -333,11 +364,33 @@ export const useTransactionsStore = defineStore('transactions', {
             }
           })
           
-          console.log('Dati mensili processati per il grafico:', this.monthlyStats)
+          console.log('Monthly data processed for chart:', this.monthlyStats)
         }
       } catch (error) {
         console.error('Error fetching monthly stats:', error)
         // Keep using calculated values from transactions
+      }
+    },
+    
+    async fetchCategoryStats(timeRange = '6months') {
+      try {
+        const api = useApi()
+        
+        // Get category expense data from API with time range parameter
+        const response = await api.getCategoryStats(timeRange)
+        
+        if (response && response.length > 0) {
+          console.log('Category stats received from backend:', response)
+          
+          // Update category expenses in store
+          this.summary.categoryExpenses = response.map(item => ({
+            category: item.category || item.label,
+            amount: parseFloat(item.total || item.amount || 0)
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching category stats:', error)
+        // We'll fall back to calculated values from transactions
       }
     },
     

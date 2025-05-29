@@ -40,7 +40,8 @@ export const useApi = () => {
   
   // Summary and Statistics methods
   const getSummary = () => callApi(apiService.getSummary)
-  const getMonthlyStats = () => callApi(apiService.getMonthlyStats)
+  const getMonthlyStats = (timeRange) => callApi(apiService.getMonthlyStats, timeRange)
+  const getCategoryStats = (timeRange) => callApi(apiService.getCategoryStats, timeRange)
   
   return {
     isLoading,
@@ -51,6 +52,7 @@ export const useApi = () => {
     deleteTransaction,
     getCategories,
     getSummary,
-    getMonthlyStats
+    getMonthlyStats,
+    getCategoryStats
   }
 }

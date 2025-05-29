@@ -208,8 +208,14 @@ export default class ApiService {
     return this.request('GET', 'transactions/summary/');
   }
 
-  async getMonthlyStats() {
-    return this.request('GET', 'transactions/monthly_summary/');
+  async getMonthlyStats(timeRange = '6months') {
+    // Add time range as query parameter
+    return this.request('GET', `transactions/monthly_summary/?time_range=${timeRange}`);
+  }
+  
+  async getCategoryStats(timeRange = '6months') {
+    // Add time range as query parameter
+    return this.request('GET', `transactions/category_summary/?time_range=${timeRange}`);
   }
 
   // Categories API methods

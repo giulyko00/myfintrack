@@ -5,13 +5,31 @@
         <div class="flex items-center justify-between">
           <h3 class="text-base font-semibold">{{ title }}</h3>
           <div class="flex items-center gap-2">
-            <USelect
-              v-model="chartType"
-              :options="chartTypeOptions"
-              size="sm"
-              :ui="{ width: 'w-32' }"
-              @update:model-value="updateChartType"
-            />
+            <!-- Time Range Selector -->
+            <div class="relative z-20">
+              <select 
+                v-model="timeRange" 
+                class="form-select block w-32 py-1.5 px-3 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                @change="updateTimeRange"
+              >
+                <option v-for="option in timeRangeOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+            
+            <!-- Chart Type Selector -->
+            <div class="relative z-10">
+              <select 
+                v-model="chartType" 
+                class="form-select block w-32 py-1.5 px-3 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                @change="updateChartType"
+              >
+                <option v-for="option in chartTypeOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
           </div>
         </div>
       </template>
@@ -70,6 +88,22 @@ const chartTypeOptions = [
   { label: 'Bar', value: 'bar' },
   { label: 'Line', value: 'line' }
 ]
+
+// Time range selection
+const timeRange = ref('6months')
+const emit = defineEmits(['update:timeRange'])
+
+const timeRangeOptions = [
+  { label: '3 Months', value: '3months' },
+  { label: '6 Months', value: '6months' },
+  { label: '1 Year', value: '1year' },
+  { label: 'All Time', value: 'all' }
+]
+
+// Make sure the initial value is set to the default
+onMounted(() => {
+  emit('update:timeRange', timeRange.value)
+})
 
 // Chart configuration
 const chartConfig = computed(() => {
@@ -184,6 +218,12 @@ function forceRerender() {
 
 // Update chart type
 function updateChartType() {
+  forceRerender();
+}
+
+// Update time range and emit event to parent
+function updateTimeRange() {
+  emit('update:timeRange', timeRange.value);
   forceRerender();
 }
 

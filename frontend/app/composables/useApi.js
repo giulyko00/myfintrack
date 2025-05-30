@@ -42,6 +42,13 @@ export const useApi = () => {
   const getSummary = () => callApi(apiService.getSummary)
   const getMonthlyStats = (timeRange) => callApi(apiService.getMonthlyStats, timeRange)
   const getCategoryStats = (timeRange) => callApi(apiService.getCategoryStats, timeRange)
+
+  // Budget methods
+  const getBudgets = () => callApi(apiService.getBudgets)
+  const getBudgetSummary = () => callApi(apiService.getBudgetSummary)
+  const addBudget = (budget) => callApi(apiService.addBudget, budget)
+  const updateBudget = (id, budget) => callApi(apiService.updateBudget, id, budget)
+  const deleteBudget = (id) => callApi(apiService.deleteBudget, id)
   
   return {
     isLoading,
@@ -53,6 +60,11 @@ export const useApi = () => {
     getCategories,
     getSummary,
     getMonthlyStats,
-    getCategoryStats
+    getCategoryStats,
+    getBudgets,
+    getBudgetSummary,
+    addBudget,
+    updateBudget,
+    deleteBudget
   }
 }

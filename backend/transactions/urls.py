@@ -6,6 +6,8 @@ app_name = 'transactions'
 
 router = DefaultRouter()
 router.register(r'transactions', views.TransactionViewSet, basename='transaction')
+router.register(r'budgets', views.BudgetViewSet, basename='budget')
+router.register(r'insights', views.FinancialInsightViewSet, basename='insight')
 
 urlpatterns = [
     path('', include(router.urls)),

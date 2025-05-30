@@ -291,6 +291,55 @@ export default class ApiService {
     return this.request('POST', 'auth/users/', userData);
   }
 
+  // Budget API methods
+  async getBudgets() {
+    try {
+      const response = await this.request('GET', 'budgets/');
+      if (Array.isArray(response)) {
+        return response;
+      } else if (response && response.results && Array.isArray(response.results)) {
+        return response.results;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error in getBudgets:', error);
+      throw error;
+    }
+  }
+
+  async getBudgetSummary() {
+    try {
+      const response = await this.request('GET', 'budgets/summary/');
+      return response;
+    } catch (error) {
+      console.error('Error in getBudgetSummary:', error);
+      throw error;
+    }
+  }
+
+  async addBudget(budget) {
+    const response = await this.request('POST', 'budgets/', {
+      category: budget.category,
+      amount: parseFloat(budget.amount),
+      period: budget.period || 'monthly'
+    });
+    return response;
+  }
+
+  async updateBudget(id, budget) {
+    const response = await this.request('PUT', `budgets/${id}/`, {
+      category: budget.category,
+      amount: parseFloat(budget.amount),
+      period: budget.period || 'monthly'
+    });
+    return response;
+  }
+
+  async deleteBudget(id) {
+    await this.request('DELETE', `budgets/${id}/`);
+    return true;
+  }
+
   async getUserInfo() {
     return this.request('GET', 'auth/users/me/');
   }

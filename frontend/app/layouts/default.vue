@@ -15,16 +15,18 @@
             Dashboard
           </NuxtLink>
           <NuxtLink 
+            to="/budget" 
             class="text-sm font-medium hover:text-primary-600 dark:hover:text-primary-400"
             active-class="text-primary-600 dark:text-primary-400"
           >
-            Trading Journal
+            Budget Planner
           </NuxtLink>
           <NuxtLink 
+            to="/insights" 
             class="text-sm font-medium hover:text-primary-600 dark:hover:text-primary-400"
             active-class="text-primary-600 dark:text-primary-400"
           >
-            Reports
+            Financial Insights
           </NuxtLink>
         </nav>
         <div class="flex items-center gap-4">

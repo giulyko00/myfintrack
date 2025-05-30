@@ -19,9 +19,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-27',
 
   app: {
-    // Apply global page transitions
+    // Apply global page transitions - only use one transition to avoid DOM conflicts
     pageTransition: { name: 'page', mode: 'out-in' },
-    layoutTransition: { name: 'layout', mode: 'out-in' },
+    // Disable layout transitions to avoid DOM manipulation conflicts
+    layoutTransition: false,
     head: {
       title: 'MyFinTrack - Personal Finance Tracker',
       meta: [

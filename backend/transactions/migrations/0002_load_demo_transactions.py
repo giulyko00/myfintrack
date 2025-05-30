@@ -12,6 +12,11 @@ def load_demo_transactions(apps, schema_editor):
     # Check if we have any transactions already
     if Transaction.objects.count() > 0:
         print("Transactions already exist, skipping demo data import")
+        # Even if we skip import, make sure sequence is updated
+        if schema_editor.connection.vendor == 'postgresql':
+            schema_editor.execute(
+                "SELECT setval(pg_get_serial_sequence('transactions_transaction', 'id'), "
+                "(SELECT MAX(id) FROM transactions_transaction));")
         return
     
     # Check if we have a demo user
@@ -459,6 +464,13 @@ def load_demo_transactions(apps, schema_editor):
             created_at=fields['created_at'],
             updated_at=fields['updated_at']
         )
+        
+    # Reset the sequence in PostgreSQL to the max ID + 1
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute(
+            "SELECT setval(pg_get_serial_sequence('transactions_transaction', 'id'), "
+            "(SELECT MAX(id) FROM transactions_transaction));")
+    print("Updated PostgreSQL sequence to next available ID")
     
     print(f"Created {len(transactions_data)} demo transactions")
 

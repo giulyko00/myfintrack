@@ -11,6 +11,7 @@
             to="/dashboard" 
             class="text-sm font-medium hover:text-primary-600 dark:hover:text-primary-400"
             active-class="text-primary-600 dark:text-primary-400"
+            prefetch
           >
             Dashboard
           </NuxtLink>
@@ -18,6 +19,7 @@
             to="/budget" 
             class="text-sm font-medium hover:text-primary-600 dark:hover:text-primary-400"
             active-class="text-primary-600 dark:text-primary-400"
+            prefetch
           >
             Budget Planner
           </NuxtLink>
@@ -25,6 +27,7 @@
             to="/insights" 
             class="text-sm font-medium hover:text-primary-600 dark:hover:text-primary-400"
             active-class="text-primary-600 dark:text-primary-400"
+            prefetch
           >
             Financial Insights
           </NuxtLink>
@@ -109,22 +112,25 @@
           to="/dashboard" 
           class="text-lg font-medium"
           @click="isMobileMenuOpen = false"
+          prefetch
         >
           Dashboard
         </NuxtLink>
         <NuxtLink 
-          to="/journal" 
+          to="/budget" 
           class="text-lg font-medium"
           @click="isMobileMenuOpen = false"
+          prefetch
         >
-          Trading Journal
+          Budget Planner
         </NuxtLink>
         <NuxtLink 
-          to="/reports" 
+          to="/insights" 
           class="text-lg font-medium"
           @click="isMobileMenuOpen = false"
+          prefetch
         >
-          Reports
+          Financial Insights
         </NuxtLink>
         <UButton
           color="primary"

@@ -1,5 +1,6 @@
 <template>
-  <NuxtLayout>
+  <div>
+    <NuxtLayout>
     <div class="container py-8">
       <!-- Loading indicator -->
       <div v-if="isLoading" class="flex justify-center py-8">
@@ -188,6 +189,7 @@
       </div>
     </div>
   </NuxtLayout>
+  </div>
 </template>
 
 <script setup>

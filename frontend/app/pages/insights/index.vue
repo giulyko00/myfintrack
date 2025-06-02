@@ -49,7 +49,11 @@
             v-for="insight in insights" 
             :key="insight.id" 
             :ui="{ body: { base: 'flex-1' } }"
-            class="overflow-hidden"
+            class="overflow-hidden transition-colors duration-300"
+            :class="{
+              'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800': !insight.is_read,
+              'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800': insight.is_read
+            }"
           >
             <div class="flex flex-col md:flex-row">
               <!-- Insight icon section -->
@@ -490,7 +494,7 @@ async function generateInsights() {
     const previousSuggestions = previousInsights.value.map(insight => insight.content).join('\n\n')
     
     // Generate insight using Puter AI with context about previous insights
-    const aiResponse = await puter.ai.chat(`
+    const rawResponse = await puter.ai.chat(`
       You are a financial expert assistant. Analyze the following transactions and provide ONE detailed, personalized insight or recommendation:
       
       Transactions (last 3 months):
@@ -513,13 +517,52 @@ async function generateInsights() {
       ${previousSuggestions || "No previous insights yet."}
     `)
 
-    // Create a new insight from the AI response
+    // Extract the actual content from the AI response
+    let aiContent = ''
+    try {
+      // Check if response is a string that contains JSON
+      if (typeof rawResponse === 'string') {
+        // If it starts with a curly brace, try to parse it as JSON
+        if (rawResponse.trim().startsWith('{')) {
+          const parsedResponse = JSON.parse(rawResponse)
+          // Extract content from the parsed response
+          if (parsedResponse?.message?.content) {
+            aiContent = parsedResponse.message.content
+          } else {
+            // Fallback if structure is different
+            aiContent = rawResponse
+          }
+        } else {
+          // If it's not JSON, use as is
+          aiContent = rawResponse
+        }
+      } else if (typeof rawResponse === 'object') {
+        // If it's already an object, try to extract content
+        if (rawResponse?.message?.content) {
+          aiContent = rawResponse.message.content
+        } else {
+          // Fallback to stringifying if structure is unknown
+          aiContent = JSON.stringify(rawResponse)
+        }
+      } else {
+        // Fallback for any other type
+        aiContent = String(rawResponse)
+      }
+    } catch (error) {
+      console.error('Error parsing AI response:', error)
+      aiContent = 'Unable to parse AI response. Please try again.'
+    }
+
+    console.log('Raw AI response:', rawResponse)
+    console.log('Extracted AI content:', aiContent)
+
+    // Create a new insight from the extracted content
     const newInsight = {
       id: Date.now(),
       insight_type: 'AI_INSIGHT',
       insight_type_display: 'AI Insight',
       title: 'Financial Insight',
-      content: aiResponse,
+      content: aiContent,
       is_read: false,
       created_at: new Date().toISOString(),
       data: {
@@ -534,7 +577,7 @@ async function generateInsights() {
     // Add to previous insights to track
     previousInsights.value.push({
       id: newInsight.id,
-      content: aiResponse
+      content: aiContent
     })
     
     // Limit tracked insights to prevent prompt from getting too large

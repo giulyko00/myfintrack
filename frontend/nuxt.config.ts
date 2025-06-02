@@ -10,6 +10,11 @@ export default defineNuxtConfig({
     '@nuxt/eslint'
   ],
 
+  // Global middleware configuration
+  routeRules: {
+    '/**': { middleware: ['auth'] }
+  },
+
   css: ['~/assets/css/main.css'],
 
   future: {

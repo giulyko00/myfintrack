@@ -11,9 +11,17 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // Check if the user is authenticated
   if (!authStore.isAuthenticated) {
     // Try to restore authentication from localStorage
+    const token = localStorage.getItem('auth.accessToken')
+    
+    if (!token) {
+      // No token found, redirect to login
+      return navigateTo('/auth/login')
+    }
+    
+    // If we have a token, verify it's still valid
     const isAuthenticated = await authStore.checkAuth()
     
-    // If still not authenticated, redirect to login
+    // If token check failed, redirect to login
     if (!isAuthenticated) {
       return navigateTo('/auth/login')
     }

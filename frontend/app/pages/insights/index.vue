@@ -253,34 +253,41 @@ onMounted(async () => {
       const parsed = JSON.parse(savedInsights)
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         insights.value = parsed
-        return // Skip API call if we have saved insights
+        
+        // Also restore previous insights for tracking (to avoid repetition)
+        if (insights.value.length > 0) {
+          insights.value.forEach(insight => {
+            if (insight.insight_type === 'AI_INSIGHT') {
+              previousInsights.value.push({
+                id: insight.id,
+                content: insight.content
+              })
+            }
+          })
+        }
+        
+        console.log('Loaded saved insights from local storage:', insights.value.length)
+        return
       }
     } catch (e) {
       console.error('Error loading saved insights:', e)
     }
   }
   
-  // If no saved insights, fetch from API
-  await fetchInsights()
+  // If no saved insights, start with an empty list
+  insights.value = []
+  previousInsights.value = []
+  console.log('No saved insights found - starting with empty list')
 })
 
 // Fetch insights
 async function fetchInsights() {
   try {
-    // Since we don't have a specific insights API yet, we'll generate placeholder insights
+    // Since we don't have a specific insights API yet, we'll just initialize with an empty array
     // In a real implementation, we would add a getInsights() method to the API service
     
-    // Get some transaction data to build insights from
-    const transactions = await getTransactions()
-    const summary = await getSummary()
-    const monthlyStats = await getMonthlyStats('3months')
-    const categoryStats = await getCategoryStats('3months')
-    
-    if (transactions && transactions.length > 0) {
-      insights.value = generatePlaceholderInsights(transactions, summary, monthlyStats, categoryStats)
-    } else {
-      insights.value = []
-    }
+    // Initialize with an empty array - no default placeholder insights
+    insights.value = []
   } catch (error) {
     console.error('Error fetching insights:', error)
   }
@@ -626,6 +633,11 @@ async function markAsRead(insightId) {
     const insight = insights.value.find(i => i.id === insightId)
     if (insight) {
       insight.is_read = true
+      
+      // Save updated status to local storage
+      saveInsightsToLocalStorage()
+      
+      console.log('Insight marked as read and saved to local storage:', insightId)
     }
   } catch (error) {
     console.error('Error marking insight as read:', error)

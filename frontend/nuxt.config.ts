@@ -12,7 +12,22 @@ export default defineNuxtConfig({
 
   // Global middleware configuration
   routeRules: {
-    '/**': { middleware: ['auth'] }
+    '/**': { middleware: ['auth'] },
+    '/auth/**': { middleware: [] }
+  },
+
+  // Optimize routing behavior
+  experimental: {
+    payloadExtraction: true,
+    renderJsonPayloads: true
+  },
+  
+  // Router configuration
+  router: {
+    options: {
+      strict: false,
+      scrollBehaviorType: 'smooth'
+    }
   },
 
   css: ['~/assets/css/main.css'],
@@ -24,9 +39,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-27',
 
   app: {
-    // Apply global page transitions - only use one transition to avoid DOM conflicts
-    pageTransition: { name: 'page', mode: 'out-in' },
-    // Disable layout transitions to avoid DOM manipulation conflicts
+    // Simplify transitions to avoid routing issues
+    pageTransition: false,
     layoutTransition: false,
     head: {
       title: 'MyFinTrack - Personal Finance Tracker',

@@ -27,6 +27,13 @@ export default defineNuxtConfig({
       title: 'MyFinTrack - Personal Finance Tracker',
       meta: [
         { name: 'description', content: 'Track your personal finances and trading activities with MyFinTrack' }
+      ],
+      script: [
+        { 
+          src: 'https://js.puter.com/v2/',
+          defer: true,
+          tagPosition: 'head'
+        }
       ]
     }
   },

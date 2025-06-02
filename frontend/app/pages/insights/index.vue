@@ -15,7 +15,8 @@
             color="primary"
             icon="i-heroicons-sparkles"
             :loading="isGenerating"
-            @click="generateInsights"
+            type="button"
+            @click="(e) => { e.preventDefault(); e.stopPropagation(); generateInsights(); }"
           >
             Generate New Insights
           </UButton>
@@ -32,7 +33,8 @@
                 color="primary"
                 icon="i-heroicons-sparkles"
                 :loading="isGenerating"
-                @click="generateInsights"
+                type="button"
+                @click="(e) => { e.preventDefault(); e.stopPropagation(); generateInsights(); }"
               >
                 Generate Insights
               </UButton>
@@ -197,6 +199,18 @@ import { ref, computed, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
 import { useRouter } from 'vue-router'
 
+// Check if running in browser
+const isBrowser = process.client
+
+// Initialize Puter
+const initPuter = () => {
+  if (!isBrowser || !window.puter) {
+    console.error('Puter SDK not loaded')
+    return null
+  }
+  return window.puter
+}
+
 // Router
 const router = useRouter()
 
@@ -207,7 +221,19 @@ const { isLoading, error, getTransactions, getSummary, getMonthlyStats, getCateg
 const insights = ref([])
 const isGenerating = ref(false)
 
-// Fetch insights on component mount
+// Track previous insights to avoid repetition
+const previousInsights = ref([])
+
+// Save insights to local storage
+function saveInsightsToLocalStorage() {
+  try {
+    localStorage.setItem('myfintrack.insights', JSON.stringify(insights.value))
+  } catch (e) {
+    console.error('Error saving insights to local storage:', e)
+  }
+}
+
+// Initialize on component mount
 onMounted(async () => {
   // Check authentication
   const token = localStorage.getItem('auth.accessToken')
@@ -216,7 +242,21 @@ onMounted(async () => {
     return
   }
   
-  // Load insights
+  // Try to load insights from local storage first
+  const savedInsights = localStorage.getItem('myfintrack.insights')
+  if (savedInsights) {
+    try {
+      const parsed = JSON.parse(savedInsights)
+      if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+        insights.value = parsed
+        return // Skip API call if we have saved insights
+      }
+    } catch (e) {
+      console.error('Error loading saved insights:', e)
+    }
+  }
+  
+  // If no saved insights, fetch from API
   await fetchInsights()
 })
 
@@ -406,21 +446,125 @@ function generatePlaceholderInsights(transactions, summary, monthlyStats, catego
   return placeholderInsights
 }
 
-// Generate new insights
+// Generate a single new insight using Puter AI
 async function generateInsights() {
+  if (isGenerating.value) return
+  
   try {
     isGenerating.value = true
     
-    // Since we don't have a specific generate insights API yet, we'll simulate a generation process
-    // In a real implementation, we would add a generateInsights() method to the API service
+    // Get recent transactions and summary data
+    const [transactions, summary, monthlyStats, categoryStats] = await Promise.all([
+      getTransactions({ limit: 50, ordering: '-date' }),
+      getSummary(),
+      getMonthlyStats('3months'),
+      getCategoryStats('3months')
+    ])
+
+    // Filter out income transactions for better insights
+    const expenses = transactions.filter(tx => tx.amount < 0)
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    // Format transactions for the AI prompt
+    const formattedTransactions = expenses.map(tx => ({
+      date: tx.date,
+      amount: Math.abs(tx.amount),
+      category: tx.category,
+      description: tx.description
+    }))
+
+    // Calculate financial summary
+    const totalIncome = monthlyStats.reduce((sum, month) => sum + month.income, 0)
+    const totalExpenses = monthlyStats.reduce((sum, month) => sum + month.expenses, 0)
+    const avgIncome = monthlyStats.length > 0 ? totalIncome / monthlyStats.length : 0
+    const avgExpenses = monthlyStats.length > 0 ? totalExpenses / monthlyStats.length : 0
+    const savings = avgIncome - avgExpenses
+    const savingsRate = avgIncome > 0 ? (savings / avgIncome) * 100 : 0
+
+    // Initialize Puter
+    const puter = initPuter()
+    if (!puter) {
+      throw new Error('Puter SDK not available. Please refresh the page and try again.')
+    }
+
+    // Collect previous suggestions to avoid repetition
+    const previousSuggestions = previousInsights.value.map(insight => insight.content).join('\n\n')
     
-    // Refresh insights list - this will generate new placeholder insights
-    await fetchInsights()
+    // Generate insight using Puter AI with context about previous insights
+    const aiResponse = await puter.ai.chat(`
+      You are a financial expert assistant. Analyze the following transactions and provide ONE detailed, personalized insight or recommendation:
+      
+      Transactions (last 3 months):
+      ${JSON.stringify(formattedTransactions, null, 2)}
+      
+      Financial Summary:
+      - Average Monthly Income: $${avgIncome.toFixed(2)}
+      - Average Monthly Expenses: $${avgExpenses.toFixed(2)}
+      - Average Monthly Savings: $${savings.toFixed(2)}
+      - Savings Rate: ${savingsRate.toFixed(1)}%
+      
+      IMPORTANT INSTRUCTIONS:
+      1. Provide ONE specific, actionable financial insight or tip
+      2. Focus on a DIFFERENT aspect than previous insights
+      3. Keep your response concise (2-3 sentences)
+      4. Make it practical and tailored to this specific financial situation
+      5. DO NOT repeat previous insights
+      
+      Previous insights (DO NOT REPEAT THESE):
+      ${previousSuggestions || "No previous insights yet."}
+    `)
+
+    // Create a new insight from the AI response
+    const newInsight = {
+      id: Date.now(),
+      insight_type: 'AI_INSIGHT',
+      insight_type_display: 'AI Insight',
+      title: 'Financial Insight',
+      content: aiResponse,
+      is_read: false,
+      created_at: new Date().toISOString(),
+      data: {
+        income: avgIncome,
+        expenses: avgExpenses,
+        savings: savings,
+        savings_rate: savingsRate,
+        time_period: '3 months'
+      }
+    }
+    
+    // Add to previous insights to track
+    previousInsights.value.push({
+      id: newInsight.id,
+      content: aiResponse
+    })
+    
+    // Limit tracked insights to prevent prompt from getting too large
+    if (previousInsights.value.length > 5) {
+      previousInsights.value.shift()
+    }
+    
+    // Add the new insight to the existing ones
+    insights.value.unshift(newInsight)
+    
+    // Save to local storage
+    saveInsightsToLocalStorage()
+    
   } catch (error) {
-    console.error('Error generating insights:', error)
+    console.error('Error generating AI insights:', error)
+    // Show error message as a new insight
+    const errorInsight = {
+      id: Date.now(),
+      insight_type: 'AI_INSIGHT',
+      insight_type_display: 'AI Insight',
+      title: 'Unable to Generate Insight',
+      content: 'We couldn\'t generate a new financial insight at this time. Please try again later.',
+      is_read: false,
+      created_at: new Date().toISOString(),
+      data: null
+    }
+    insights.value.unshift(errorInsight)
+    
+    // Save to local storage
+    saveInsightsToLocalStorage()
   } finally {
     isGenerating.value = false
   }
@@ -456,8 +600,10 @@ function getInsightIcon(type) {
       return 'i-heroicons-banknotes'
     case 'GENERAL':
       return 'i-heroicons-light-bulb'
-    default:
+    case 'AI_INSIGHT':
       return 'i-heroicons-sparkles'
+    default:
+      return 'i-heroicons-question-mark-circle'
   }
 }
 
@@ -472,6 +618,8 @@ function getInsightIconColor(type) {
       return 'text-emerald-500'
     case 'GENERAL':
       return 'text-violet-500'
+    case 'AI_INSIGHT':
+      return 'text-pink-500'
     default:
       return 'text-gray-500'
   }
@@ -488,6 +636,8 @@ function getInsightTypeColor(type) {
       return 'emerald'
     case 'GENERAL':
       return 'violet'
+    case 'AI_INSIGHT':
+      return 'pink'
     default:
       return 'gray'
   }

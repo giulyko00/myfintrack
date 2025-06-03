@@ -500,28 +500,47 @@ async function generateInsights() {
     // Collect previous suggestions to avoid repetition
     const previousSuggestions = previousInsights.value.map(insight => insight.content).join('\n\n')
     
-    // Generate insight using Puter AI with context about previous insights
+    // Format all transactions for better readability
+    const allTransactions = transactions.map(tx => ({
+      date: new Date(tx.date).toLocaleDateString('en-US'),
+      amount: tx.amount < 0 ? `-$${Math.abs(tx.amount).toFixed(2)}` : `+$${tx.amount.toFixed(2)}`,
+      category: tx.category || 'Uncategorized',
+      description: tx.description || 'No description',
+      type: tx.amount < 0 ? 'expense' : 'income'
+    }))
+
+    // Generate insight using Puter AI with complete transaction history
     const rawResponse = await puter.ai.chat(`
-      You are a financial expert assistant. Analyze the following transactions and provide ONE detailed, personalized insight or recommendation:
+      You are a financial expert assistant. Analyze the following complete transaction history and provide ONE detailed, personalized insight or recommendation.
       
-      Transactions (last 3 months):
-      ${JSON.stringify(formattedTransactions, null, 2)}
+      COMPLETE TRANSACTION HISTORY (${allTransactions.length} transactions):
+      ${JSON.stringify(allTransactions, null, 2)}
       
-      Financial Summary:
-      - Average Monthly Income: $${avgIncome.toFixed(2)}
-      - Average Monthly Expenses: $${avgExpenses.toFixed(2)}
-      - Average Monthly Savings: $${savings.toFixed(2)}
+      FINANCIAL OVERVIEW:
+      - Total Monthly Income: $${avgIncome.toFixed(2)}
+      - Total Monthly Expenses: $${avgExpenses.toFixed(2)}
+      - Net Monthly Savings: $${savings.toFixed(2)}
       - Savings Rate: ${savingsRate.toFixed(1)}%
+      - Period: Last 3 months
       
-      IMPORTANT INSTRUCTIONS:
-      1. Provide ONE specific, actionable financial insight or tip
-      2. Focus on a DIFFERENT aspect than previous insights
-      3. Keep your response concise (2-3 sentences)
-      4. Make it practical and tailored to this specific financial situation
-      5. DO NOT repeat previous insights
+      YOUR TASK:
+      Analyze the transaction patterns and provide a specific, actionable insight. Consider:
+      1. Spending patterns and categories
+      2. Income consistency
+      3. Potential savings opportunities
+      4. Any unusual or large transactions
       
-      Previous insights (DO NOT REPEAT THESE):
+      REQUIREMENTS:
+      - Provide only ONE specific, actionable insight (2-3 sentences)
+      - Focus on a DIFFERENT aspect than previous insights
+      - Be concise but detailed enough to be helpful
+      - Include specific amounts or categories when relevant
+      - Format numbers with $ and proper commas (e.g., $1,234.56)
+      
+      PREVIOUS INSIGHTS (DO NOT REPEAT THESE):
       ${previousSuggestions || "No previous insights yet."}
+      
+      YOUR RESPONSE (just the insight text, no markdown or formatting):
     `)
 
     // Extract the actual content from the AI response
